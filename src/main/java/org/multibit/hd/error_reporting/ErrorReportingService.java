@@ -1,7 +1,6 @@
 package org.multibit.hd.error_reporting;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -12,7 +11,6 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.multibit.hd.brit.crypto.PGPUtils;
-import org.multibit.hd.brit.matcher.*;
 import org.multibit.hd.error_reporting.health.ErrorReportingHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
@@ -38,12 +36,12 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   private static final Logger log = LoggerFactory.getLogger(ErrorReportingService.class);
 
   /**
-   * The BRIT Matcher root directory
+   * The error reporting support directory
    */
-  private static final String BRIT_MATCHER_DIRECTORY = "/var/brit/matcher";
+  private static final String ERROR_REPORTING_DIRECTORY = "/var/error-reporting";
 
   /**
-   * The Matcher public key
+   * The service public key
    */
   private final String servicePublicKey;
 
@@ -64,23 +62,23 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     System.out.print("Crypto files ");
     // PGP decrypt the file (requires the private key ring that is password protected)
-    final File britMatcherDirectory = getBritMatcherDirectory();
-    final File matcherSecretKeyringFile = getMatcherSecretKeyringFile(britMatcherDirectory);
-    final File matcherPublicKeyFile = getMatcherPublicKeyFile(britMatcherDirectory);
-    final File testCryptoFile = getTestCryptoFile(britMatcherDirectory);
+    final File errorReportingDirectory = getErrorReportingDirectory();
+    final File secretKeyringFile = getSecretKeyringFile(errorReportingDirectory);
+    final File publicKeyFile = getPublicKeyFile(errorReportingDirectory);
+    final File testCryptoFile = getTestCryptoFile(errorReportingDirectory);
     System.out.println("OK");
 
     System.out.print("Crypto keys ");
     try {
       // Attempt to encrypt the test file
       ByteArrayOutputStream armoredOut = new ByteArrayOutputStream(1024);
-      PGPPublicKey matcherPublicKey = PGPUtils.readPublicKey(new FileInputStream(matcherPublicKeyFile));
-      PGPUtils.encryptFile(armoredOut, testCryptoFile, matcherPublicKey);
+      PGPPublicKey publicKey = PGPUtils.readPublicKey(new FileInputStream(publicKeyFile));
+      PGPUtils.encryptFile(armoredOut, testCryptoFile, publicKey);
 
       // Attempt to decrypt the test file
       ByteArrayInputStream armoredIn = new ByteArrayInputStream(armoredOut.toByteArray());
       ByteArrayOutputStream decryptedOut = new ByteArrayOutputStream(1024);
-      PGPUtils.decryptFile(armoredIn, decryptedOut, new FileInputStream(matcherSecretKeyringFile), password);
+      PGPUtils.decryptFile(armoredIn, decryptedOut, new FileInputStream(secretKeyringFile), password);
 
       // Verify that the decryption was successful
       String testCrypto = decryptedOut.toString();
@@ -97,19 +95,19 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     }
 
     // Create the Matcher
-    System.out.print("Matcher ");
-    Matcher matcher = newMatcher(password);
-    Preconditions.checkNotNull(matcher, "'matcher' must be present");
-    System.out.println("OK\nStarting server...\n");
+    System.out.println("OK\nStarting service...\n");
 
     // Load the public key
-    String matcherPublicKey = Files.toString(matcherPublicKeyFile, Charsets.UTF_8);
+    String publicKey = Files.toString(publicKeyFile, Charsets.UTF_8);
 
     // Must be OK to be here
-    new ErrorReportingService(matcherPublicKey).run(args);
+    new ErrorReportingService(publicKey).run(args);
 
   }
 
+  /**
+   * @return The password taken from the console (or "password" if running in an IDE)
+   */
   private static char[] readPassword() {
 
     Console console = System.console();
@@ -131,76 +129,44 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   }
 
   /**
-   * <p>Initialise the Matcher</p>
-   *
-   * @param password The password for the Matcher secret keyring
-   *
-   * @throws IOException If the Matcher fails to start
+   * @return The error reporting support directory
    */
-  private static Matcher newMatcher(char[] password) throws IOException {
+  private static File getErrorReportingDirectory() {
 
-    final File britMatcherDirectory = getBritMatcherDirectory();
-    final File matcherStoreDirectory = getMatcherStoreDirectory(britMatcherDirectory);
-    final File matcherSecretKeyFile = getMatcherSecretKeyringFile(britMatcherDirectory);
-
-    // Build the Matcher configuration
-    MatcherConfig matcherConfig = new MatcherConfig(matcherSecretKeyFile, password);
-
-    // Reference the Matcher store
-    MatcherStore matcherStore = MatcherStores.newBasicMatcherStore(matcherStoreDirectory);
-
-    // Build the Matcher
-    return Matchers.newBasicMatcher(matcherConfig, matcherStore);
-
-  }
-
-  private static File getBritMatcherDirectory() {
-
-    final File britMatcherDirectory = new File(BRIT_MATCHER_DIRECTORY);
-    if (!britMatcherDirectory.exists()) {
-      System.err.printf("Matcher directory not present at '%s'.%n", britMatcherDirectory.getAbsolutePath());
+    final File errorReportingDirectory = new File(ERROR_REPORTING_DIRECTORY);
+    if (!errorReportingDirectory.exists()) {
+      System.err.printf("Error reporting directory not present at '%s'.%n", errorReportingDirectory.getAbsolutePath());
       System.exit(-1);
     }
 
-    return britMatcherDirectory;
+    return errorReportingDirectory;
   }
 
-  private static File getMatcherStoreDirectory(File britMatcherDirectory) {
+  private static File getSecretKeyringFile(File errorReportingDirectory) {
 
-    final File matcherStoreDirectory = new File(britMatcherDirectory, "store");
-    if (!matcherStoreDirectory.exists()) {
-      System.err.printf("Store directory not present at '%s'.%n", matcherStoreDirectory.getAbsolutePath());
+    File secretKeyringFile = new File(errorReportingDirectory, "fixtures/gpg/secring.gpg");
+    if (!secretKeyringFile.exists()) {
+      System.err.printf("Error reporting secret keyring not present at '%s'.%n", secretKeyringFile.getAbsolutePath());
       System.exit(-1);
     }
 
-    return matcherStoreDirectory;
+    return secretKeyringFile;
   }
 
-  private static File getMatcherSecretKeyringFile(File britMatcherDirectory) {
+  private static File getPublicKeyFile(File errorReportingDirectory) {
 
-    File matcherSecretKeyringFile = new File(britMatcherDirectory, "gpg/secring.gpg");
-    if (!matcherSecretKeyringFile.exists()) {
-      System.err.printf("Matcher secret keyring not present at '%s'.%n", matcherSecretKeyringFile.getAbsolutePath());
-      System.exit(-1);
-    }
-
-    return matcherSecretKeyringFile;
-  }
-
-  private static File getMatcherPublicKeyFile(File britMatcherDirectory) {
-
-    File matcherPublicKeyFile = new File(britMatcherDirectory, "gpg/matcher-key.asc");
+    File matcherPublicKeyFile = new File(errorReportingDirectory, "fixtures/gpg/public-key.asc");
     if (!matcherPublicKeyFile.exists()) {
-      System.err.printf("Matcher public key not present at '%s'.%n", matcherPublicKeyFile.getAbsolutePath());
+      System.err.printf("Public key not present at '%s'.%n", matcherPublicKeyFile.getAbsolutePath());
       System.exit(-1);
     }
 
     return matcherPublicKeyFile;
   }
 
-  private static File getTestCryptoFile(File britMatcherDirectory) throws IOException {
+  private static File getTestCryptoFile(File errorReportingDirectory) throws IOException {
 
-    File testCryptoFile = new File(britMatcherDirectory, "gpg/test.txt");
+    File testCryptoFile = new File(errorReportingDirectory, "fixtures/gpg/test.txt");
     if (!testCryptoFile.exists()) {
       if (!testCryptoFile.createNewFile()) {
         System.err.printf("Could not create crypto test file: '%s'.%n", testCryptoFile.getAbsolutePath());
@@ -217,8 +183,8 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     return testCryptoFile;
   }
 
-  public ErrorReportingService(String servicePublicKey) {
-    this.servicePublicKey = servicePublicKey;
+  public ErrorReportingService(String publicKey) {
+    this.servicePublicKey = publicKey;
   }
 
   @Override

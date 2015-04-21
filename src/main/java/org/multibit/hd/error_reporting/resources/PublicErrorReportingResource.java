@@ -20,7 +20,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * <p>Resource to provide the following to application:</p>
  * <ul>
- * <li>Provision of BRIT responses</li>
+ * <li>Provision of error reporting responses</li>
+ * <li>Handles decrypting error reports and handing them upstream</li>
  * </ul>
  *
  * @since 0.0.1

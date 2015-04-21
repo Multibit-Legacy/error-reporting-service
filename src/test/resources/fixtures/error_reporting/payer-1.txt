@@ -1,5 +1,0 @@
------ BEGIN USER NOTES -----
-Hello!
------ BEGIN LOG -----
-
------ END LOG -----

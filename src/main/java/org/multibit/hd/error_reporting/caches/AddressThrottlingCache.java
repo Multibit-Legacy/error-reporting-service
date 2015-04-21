@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
  * <ul>
  * <li>In-memory thread-safe cache for long-lived artifacts generated periodically</li>
  * </ul>
- * <p>This protects against a single IP address hammering the BRIT server</p>
+ * <p>This protects against a single IP address hammering the service</p>
  *
  * @since 0.0.1
  */

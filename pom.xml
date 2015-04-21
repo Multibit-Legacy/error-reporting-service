@@ -163,7 +163,7 @@
       <version>14.0.1</version>
     </dependency>
 
-    <!-- BRIT support -->
+    <!-- Encryption support -->
     <dependency>
       <groupId>org.multibit.hd</groupId>
       <artifactId>mbhd-brit</artifactId>

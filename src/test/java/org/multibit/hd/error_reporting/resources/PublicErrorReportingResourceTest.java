@@ -4,21 +4,17 @@ import com.yammer.dropwizard.testing.ResourceTest;
 import org.junit.Test;
 import org.multibit.hd.error_reporting.testing.FixtureAsserts;
 import org.multibit.hd.error_reporting.utils.StreamUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
-import java.security.SecureRandom;
+import java.io.InputStream;
 
 public class PublicErrorReportingResourceTest extends ResourceTest {
-
-  private static final Logger log = LoggerFactory.getLogger(PublicErrorReportingResourceTest.class);
 
   public static final String TEST_MATCHER_PUBLIC_KEYRING_FILE = "/src/test/resources/fixtures/gpg/pubring.gpg";
 
   public static final String TEST_MATCHER_SECRET_KEYRING_FILE = "/src/test/resources/fixtures/gpg/secring.gpg";
 
-  public static final String TEST_PUBLIC_KEY_FILE = "/src/test/resources/fixtures/gpg/test-public-key.asc";
+  public static final String TEST_PUBLIC_KEY_FILE = "/src/test/resources/fixtures/gpg/public-key.asc";
 
   /**
    * The password used in the generation of the test PGP keys
@@ -27,19 +23,17 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
 
   private PublicErrorReportingResource testObject;
 
-  private SecureRandom secureRandom;
-
   @Override
   protected void setUpResources() throws Exception {
 
-    String matcherPublicKey = StreamUtils.toString(PublicErrorReportingResource.class.getResourceAsStream("/error_reporting/matcher-pubkey.asc"));
+    InputStream is = PublicErrorReportingResourceTest.class.getResourceAsStream("/fixtures/gpg/public-key.asc");
 
-    testObject = new PublicErrorReportingResource(matcherPublicKey);
+    String publicKey = StreamUtils.toString(is);
+
+    testObject = new PublicErrorReportingResource(publicKey);
 
     // Configure resources
     addResource(testObject);
-
-    secureRandom = new SecureRandom();
 
   }
 
@@ -56,7 +50,7 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
     FixtureAsserts.assertStringMatchesStringFixture(
       "Get service public key",
       actualResponse,
-      "/error_reporting/service-pubkey.asc"
+      "/fixtures/gpg/public-key.asc"
     );
 
   }
