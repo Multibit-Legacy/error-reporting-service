@@ -1,8 +1,8 @@
-## MultiBit the Error Reporting Service
+## Error Reporting Service
 
 Build status: [![Build Status](https://travis-ci.org/bitcoin-solutions/error-reporting-service.png?branch=develop)](https://travis-ci.org/bitcoin-solutions/error-reporting-service)
 
-This repo contains the source for the MultiBit the Error Reporting Service.
+This repo contains the source for the MultiBit HD Error Reporting Service.
 
 From a technical point of view this project uses
 
@@ -30,7 +30,7 @@ To quickly check that you have Maven 3+ installed check on the command line:
 
 A quick way to install Maven on Mac is to use HomeBrew.
 
-### The Error Reporting Service config
+### Configuration
 
 The Error Reporting Service uses a PGP key to authenticate the requests sent to it.
 
@@ -40,7 +40,7 @@ You will need to open up the permissions on the folders in `/var/error-reporting
 
     sudo chmod a+wx -R /var/error-reporting
 
-To get a developer environment up and running just copy these values from `src/test/resources/fixtures` into the
+To get a developer environment up and running just copy these values from `src/test/resources/fixtures/gpg` into the
 external location.
 
 ### Inside an IDE
@@ -57,9 +57,11 @@ At this stage you can perform most development tasks and you won't be prompted f
 
 ## Running the error reporting service in Production
 
-To run up the Error Reporting Service for real you need to run it outside of an IDE which introduces some security issues. Security Providers such
-as Bouncy Castle can only be loaded from a trusted source. In the case of a JAR this means that it must be signed with a certificate
-that has in turn been signed by one of the trusted Certificate Authorities (CAs) in the `cacerts` file of the JRE.
+To run up the Error Reporting Service for real you need to run it outside of an IDE which introduces some security issues.
+
+Java Security Providers such as Bouncy Castle can only be loaded from a trusted source. In the case of a JAR this means
+that it must be signed with a certificate that has in turn been signed by one of the trusted Certificate Authorities (CAs)
+in the `cacerts` file of the executing JRE.
 
 Fortunately the Bouncy Castle team have done this so the `bcprov-jdk16-1.46.jar` must be external to the server JAR.
 
@@ -80,15 +82,15 @@ All commands will work on *nix without modification, use `\` instead of `/` for 
 
 ## Test the Error Reporting Service using a browser REST plugin
 
-First open a browser to [http://localhost:9191/error-reporting/public-key](http://localhost:9191/error-reporting/public-key) and you should see the Error Reporting Service
-public key. Note it is port 9191 not the usual 8080.
+First open a browser to [http://localhost:9191/error-reporting/public-key](http://localhost:9191/error-reporting/public-key) and you should see the
+Error Reporting Service public key. Note it is port 9191 not the usual 8080.
 
 If you are running Chrome and have the excellent Advanced REST Client extension installed then you can build a POST request for the
 development environment as follows:
 
-    Host: http://localhost:9191/brit
+    Host: http://localhost:9191/error-reporting
     Content-Type: text/plain
-    Accept: application/octet-stream
+    Accept: text/plain
 
     -----BEGIN PGP MESSAGE-----
     Version: BCPG v1.46
@@ -105,9 +107,19 @@ development environment as follows:
     =twKa
     -----END PGP MESSAGE-----
 
-If all goes well the response will be a `201_CREATED` with some gibberish to decrypt. The client and server are in synch.
+If all goes well the response will be a `201_CREATED`. The service will have successfully decrypted the payload and then passed it
+upstream for processing by the ELK stack (see later).
 
-A `400_BAD_REQUEST` indicates that the Error Reporting Service is not able to decrypt the PayerRequest.
+A `400_BAD_REQUEST` indicates that the Error Reporting Service is not able to decrypt the payload.
+
+### How to set up the rest of the Error Reporting environment
+
+The Error Reporting service acts as a bridge between the client application providing an occasional encrypted error report containing
+a log file and an ELK stack. ELK is short for "Elastic Search, Logstash and Kibana" which is a powerful trio of open source applications
+providing data visualisation.
+
+Everyone's server environment is different so [here is a general guide based on Centos 7](https://www.digitalocean.com/community/tutorial_series/centralized-logging-with-logstash-and-kibana-on-centos-7).
+There are versions covering different server operating systems on that site as well.
 
 ### Where does the ASCII art come from?
 
