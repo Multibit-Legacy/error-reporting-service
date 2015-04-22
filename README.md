@@ -41,7 +41,7 @@ You will need to open up the permissions on the folders in `/var/error-reporting
     sudo chmod a+wx -R /var/error-reporting
 
 To get a developer environment up and running just copy these values from `src/test/resources/fixtures/gpg` into the
-external location.
+external location (e.g. `/var/error-reporting/gpg/...`)
 
 ### Inside an IDE
 

@@ -42,7 +42,7 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
 
     // Build the request
     String actualResponse = client()
-      .resource("/error_reporting/public-key")
+      .resource("/error-reporting/public-key")
       .header("Content-Type", "text/plain")
       .accept(MediaType.TEXT_PLAIN_TYPE)
       .get(String.class);
