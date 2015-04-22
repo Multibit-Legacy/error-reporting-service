@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @since 0.0.1
  */
-@Path("/error_reporting")
+@Path("/error-reporting")
 public class PublicErrorReportingResource extends BaseResource {
 
   private static final Logger log = LoggerFactory.getLogger(PublicErrorReportingResource.class);
@@ -113,7 +113,7 @@ public class PublicErrorReportingResource extends BaseResource {
 
 //    try {
 //
-//      // TODO Decrypt the response using the external keyring
+//      // TODO Decrypt the response using the secring
 //
 //    } catch (Exception e) {
 //      log.error(e.getMessage(), e);

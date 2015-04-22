@@ -95,7 +95,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     }
 
     // Create the Matcher
-    System.out.println("OK\nStarting service...\n");
+    System.out.println("Environment checks OK\nStarting service...\n");
 
     // Load the public key
     String publicKey = Files.toString(publicKeyFile, Charsets.UTF_8);
@@ -135,7 +135,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     final File errorReportingDirectory = new File(ERROR_REPORTING_DIRECTORY);
     if (!errorReportingDirectory.exists()) {
-      System.err.printf("Error reporting directory not present at '%s'.%n", errorReportingDirectory.getAbsolutePath());
+      System.err.printf("Error reporting directory not present at '%s'.%nConsider copying the example structure from src/test/resources%n", errorReportingDirectory.getAbsolutePath());
       System.exit(-1);
     }
 
@@ -144,7 +144,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
   private static File getSecretKeyringFile(File errorReportingDirectory) {
 
-    File secretKeyringFile = new File(errorReportingDirectory, "fixtures/gpg/secring.gpg");
+    File secretKeyringFile = new File(errorReportingDirectory, "gpg/secring.gpg");
     if (!secretKeyringFile.exists()) {
       System.err.printf("Error reporting secret keyring not present at '%s'.%n", secretKeyringFile.getAbsolutePath());
       System.exit(-1);
@@ -155,7 +155,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
   private static File getPublicKeyFile(File errorReportingDirectory) {
 
-    File matcherPublicKeyFile = new File(errorReportingDirectory, "fixtures/gpg/public-key.asc");
+    File matcherPublicKeyFile = new File(errorReportingDirectory, "gpg/public-key.asc");
     if (!matcherPublicKeyFile.exists()) {
       System.err.printf("Public key not present at '%s'.%n", matcherPublicKeyFile.getAbsolutePath());
       System.exit(-1);
@@ -166,7 +166,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
   private static File getTestCryptoFile(File errorReportingDirectory) throws IOException {
 
-    File testCryptoFile = new File(errorReportingDirectory, "fixtures/gpg/test.txt");
+    File testCryptoFile = new File(errorReportingDirectory, "gpg/test.txt");
     if (!testCryptoFile.exists()) {
       if (!testCryptoFile.createNewFile()) {
         System.err.printf("Could not create crypto test file: '%s'.%n", testCryptoFile.getAbsolutePath());
