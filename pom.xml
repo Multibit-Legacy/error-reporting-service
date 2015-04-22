@@ -168,6 +168,12 @@
       <groupId>org.multibit.hd</groupId>
       <artifactId>mbhd-brit</artifactId>
       <version>develop-SNAPSHOT</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>annotations</artifactId>
+          <groupId>com.google.code.findbugs</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Test libraries -->
