@@ -1,7 +1,12 @@
 package org.multibit.hd.error_reporting.resources;
 
-import com.google.common.util.concurrent.*;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.sun.jersey.api.client.Client;
+import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +16,7 @@ import java.util.concurrent.Executors;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 
+@Ignore
 public class PublicErrorReportingResourceLoadTest {
 
   private static final Logger log = LoggerFactory.getLogger(PublicErrorReportingResourceLoadTest.class);
