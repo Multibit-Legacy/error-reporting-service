@@ -5,6 +5,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.Timed;
+import org.multibit.hd.brit.crypto.PGPUtils;
+import org.multibit.hd.error_reporting.ErrorReportingService;
 import org.multibit.hd.error_reporting.caches.ErrorReportingResponseCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-import java.io.IOException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -36,16 +38,29 @@ public class PublicErrorReportingResource extends BaseResource {
    */
   private final static int MAX_PAYLOAD_LENGTH = 2_000_000;
 
-  private final MessageDigest sha1Digest;
-
+  private final char[] password;
+  private final byte[] secring;
   private final String servicePublicKey;
 
   /**
+   * Default constructor used by Jersey and reads from the ErrorReportingService
    */
-  public PublicErrorReportingResource(String servicePublicKey) throws NoSuchAlgorithmException, IOException {
+  public PublicErrorReportingResource() {
+    this(
+      ErrorReportingService.getSecring(),
+      ErrorReportingService.getPassword(),
+      ErrorReportingService.getServicePublicKey()
+    );
+  }
 
+  /**
+   * Full constructor used by resource tests
+   */
+  public PublicErrorReportingResource(byte[] secring, char[] password, String servicePublicKey) {
+
+    this.secring = Arrays.copyOf(secring, secring.length);
+    this.password = Arrays.copyOf(password, password.length);
     this.servicePublicKey = servicePublicKey;
-    this.sha1Digest = MessageDigest.getInstance("SHA1");
 
   }
 
@@ -60,12 +75,8 @@ public class PublicErrorReportingResource extends BaseResource {
   @Produces("text/plain")
   @Timed
   @CacheControl(maxAge = 1, maxAgeUnit = TimeUnit.DAYS)
-  public Response getPublicKey() throws IOException {
-
-    return Response
-      .ok(servicePublicKey)
-      .build();
-
+  public Response getPublicKey() {
+    return Response.ok(servicePublicKey).build();
   }
 
   /**
@@ -80,7 +91,7 @@ public class PublicErrorReportingResource extends BaseResource {
   @Produces("text/plain")
   @Timed
   @CacheControl(noCache = true)
-  public Response submitEncryptedErrorReport(String payload) throws Exception {
+  public Response submitEncryptedErrorReport(String payload) {
 
     Preconditions.checkNotNull(payload, "'payload' must be present");
     Preconditions.checkState(payload.length() < MAX_PAYLOAD_LENGTH, "'payload' is too long");
@@ -96,9 +107,7 @@ public class PublicErrorReportingResource extends BaseResource {
 
   private String processEncryptedErrorReport(byte[] payload) {
 
-    // Check the cache
-    byte[] sha1 = sha1Digest.digest(payload);
-
+    byte[] sha1 = ErrorReportingService.digest(payload);
     Optional<String> cachedResponse = ErrorReportingResponseCache.INSTANCE.getByErrorReportDigest(sha1);
 
     if (cachedResponse.isPresent()) {
@@ -109,19 +118,32 @@ public class PublicErrorReportingResource extends BaseResource {
     // Must be new or uncached to be here
     log.debug("Creating response");
 
-    return "";
+    // Decrypt the payload
+    ByteArrayInputStream encryptedBais = new ByteArrayInputStream(payload);
+    ByteArrayOutputStream plainBaos = new ByteArrayOutputStream();
+    try {
+      PGPUtils.decryptFile(encryptedBais, plainBaos, new ByteArrayInputStream(secring), password);
+    } catch (Exception e) {
+      throw new WebApplicationException(Response.Status.BAD_REQUEST);
+    }
 
-//    try {
-//
-//      // TODO Decrypt the response using the secring
-//
-//    } catch (Exception e) {
-//      log.error(e.getMessage(), e);
-//      throw new WebApplicationException(Response.Status.BAD_REQUEST);
-//    }
-//
-//    return response;
+    // Push to ELK and cache the result
+    String result = pushToElk(plainBaos);
+    ErrorReportingResponseCache.INSTANCE.put(sha1, result);
+    return result;
 
+  }
+
+  /**
+   * @param payload The plaintext payload
+   *
+   * @return The result of the push (e.g. "OK_UNKNOWN")
+   */
+  private String pushToElk(ByteArrayOutputStream payload) {
+
+    System.out.printf("Payload as String:%n%s%n", new String(payload.toByteArray(), Charsets.UTF_8));
+
+    return "OK_UNKNOWN";
   }
 
 }

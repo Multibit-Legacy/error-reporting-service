@@ -1,6 +1,7 @@
 package org.multibit.hd.error_reporting;
 
 import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
@@ -19,6 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 /**
  * <p>Service to provide the following to application:</p>
@@ -42,7 +46,17 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   /**
    * The service public key
    */
-  private final String servicePublicKey;
+  private static String servicePublicKey;
+
+  /**
+   * The PGP secring file
+   */
+  private static byte[] secring;
+
+  /**
+   * PGP secring password
+   */
+  private static char[] password;
 
   /**
    * Main entry point to the application
@@ -57,7 +71,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     LoggingFactory.bootstrap();
 
     // Securely read the password from the console
-    final char[] password = readPassword();
+    password = readPassword();
 
     System.out.print("Crypto files ");
     // PGP decrypt the file (requires the private key ring that is password protected)
@@ -77,7 +91,8 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
       // Attempt to decrypt the test file
       ByteArrayInputStream armoredIn = new ByteArrayInputStream(armoredOut.toByteArray());
       ByteArrayOutputStream decryptedOut = new ByteArrayOutputStream(1024);
-      PGPUtils.decryptFile(armoredIn, decryptedOut, new FileInputStream(secretKeyringFile), password);
+      secring = ByteStreams.toByteArray(new FileInputStream(secretKeyringFile));
+      PGPUtils.decryptFile(armoredIn, decryptedOut, new ByteArrayInputStream(getSecring()), password);
 
       // Verify that the decryption was successful
       String testCrypto = decryptedOut.toString();
@@ -93,15 +108,55 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
       System.exit(-1);
     }
 
-    // Create the Matcher
+    // Create the service
     System.out.println("Environment checks OK\nStarting service...\n");
 
     // Load the public key
-    String publicKey = Files.toString(publicKeyFile, Charsets.UTF_8);
+    servicePublicKey = Files.toString(publicKeyFile, Charsets.UTF_8);
 
     // Must be OK to be here
-    new ErrorReportingService(publicKey).run(args);
+    new ErrorReportingService().run(args);
 
+  }
+
+  /**
+   * @return The public key to serve to consumers of this service
+   */
+  public static String getServicePublicKey() {
+    return servicePublicKey;
+  }
+
+  /**
+   * @param payload The payload
+   *
+   * @return A SHA1 digest of the payload
+   */
+  public static byte[] digest(byte[] payload) {
+
+    final MessageDigest sha1Digest;
+    try {
+      sha1Digest = MessageDigest.getInstance("SHA1");
+    } catch (NoSuchAlgorithmException e) {
+      log.error("SHA1 not supported on this machine.");
+      return null;
+    }
+
+    return sha1Digest.digest(payload);
+
+  }
+
+  /**
+   * @return A copy of the PGP secring
+   */
+  public static byte[] getSecring() {
+    return Arrays.copyOf(secring, secring.length);
+  }
+
+  /**
+   * @return A copy of the PGP secring password
+   */
+  public static char[] getPassword() {
+    return Arrays.copyOf(password, password.length);
   }
 
   /**
@@ -134,7 +189,9 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     final File errorReportingDirectory = new File(ERROR_REPORTING_DIRECTORY);
     if (!errorReportingDirectory.exists()) {
-      System.err.printf("Error reporting directory not present at '%s'.%nConsider copying the example structure from src/test/resources%n", errorReportingDirectory.getAbsolutePath());
+      System.err.printf(
+        "Error reporting directory not present at '%s'.%nConsider copying the example structure from src/test/resources%n",
+        errorReportingDirectory.getAbsolutePath());
       System.exit(-1);
     }
 
@@ -182,10 +239,6 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     return testCryptoFile;
   }
 
-  public ErrorReportingService(String publicKey) {
-    this.servicePublicKey = publicKey;
-  }
-
   @Override
   public void initialize(Bootstrap<ErrorReportingConfiguration> bootstrap) {
 
@@ -199,7 +252,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     log.info("Scanning environment...");
 
     // Configure environment
-    environment.addResource(new PublicErrorReportingResource(servicePublicKey));
+    environment.addResource(PublicErrorReportingResource.class);
 
     // Health checks
     environment.addHealthCheck(new ErrorReportingHealthCheck());
@@ -215,5 +268,4 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     environment.setSessionHandler(new SessionHandler());
 
   }
-
 }
