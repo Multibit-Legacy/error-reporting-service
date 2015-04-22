@@ -14,7 +14,6 @@ import org.multibit.hd.brit.crypto.PGPUtils;
 import org.multibit.hd.error_reporting.health.ErrorReportingHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
-import org.multibit.hd.error_reporting.servlets.AddressThrottlingFilter;
 import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,13 +210,6 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Filters
     environment.addFilter(new SafeLocaleFilter(), "/*");
-    if (errorReportingConfiguration.isProduction()) {
-      environment.addFilter(new AddressThrottlingFilter(), "/*");
-    } else {
-      log.warn("*********************************************************************************");
-      log.warn("* IP Address throttling is not active. Use 'production: true' on a live server. *");
-      log.warn("*********************************************************************************");
-    }
 
     // Session handler
     environment.setSessionHandler(new SessionHandler());
