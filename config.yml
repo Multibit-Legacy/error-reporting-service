@@ -2,6 +2,9 @@
 
 production: true
 
+elasticsearchHost: localhost:9300
+clusterName: jc-play
+
 # ################################# Dropwizard specific settings ##################################
 
 # Define the HTTP settings

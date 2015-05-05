@@ -64,14 +64,27 @@
         <updatePolicy>always</updatePolicy>
       </snapshots>
     </repository>
-
+    <!-- ElasticSearch repo -->
+    <repository>
+      <id>elasticsearch-releases</id>
+      <url>http://maven.elasticsearch.org/releases</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
   </repositories>
 
   <!-- Set the version levels for linked dependencies -->
   <properties>
-    <dropwizard.version>0.6.2</dropwizard.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <dropwizard.version>0.6.2</dropwizard.version>
+    <elasticSearch.version>1.5.1</elasticSearch.version>
+
   </properties>
 
   <build>
@@ -175,6 +188,20 @@
         </exclusion>
       </exclusions>
     </dependency>
+
+    <!-- Elastic Search dependencies -->
+    <!-- Cluster access -->
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${elasticSearch.version}</version>
+    </dependency>
+    <!-- TODO Security -->
+    <!--<dependency>-->
+      <!--<groupId>org.elasticsearch</groupId>-->
+      <!--<artifactId>elasticsearch-shield</artifactId>-->
+      <!--<version>1.0.0</version>-->
+    <!--</dependency>-->
 
     <!-- Test libraries -->
 

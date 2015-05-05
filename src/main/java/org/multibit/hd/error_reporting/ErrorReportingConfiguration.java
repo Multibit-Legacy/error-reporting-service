@@ -2,6 +2,7 @@ package org.multibit.hd.error_reporting;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.yammer.dropwizard.config.Configuration;
+import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -22,7 +23,32 @@ public class ErrorReportingConfiguration extends Configuration {
   @JsonProperty
   private boolean production = true;
 
+  @NotEmpty
+  @JsonProperty
+  private String elasticsearchHost = "localhost:9300";
+
+  @NotEmpty
+  @JsonProperty
+  private String clusterName = "elasticsearch";
+
   public boolean isProduction() {
     return production;
   }
+
+  public String getElasticsearchHost() {
+    return elasticsearchHost;
+  }
+
+  public void setElasticsearchHost(String elasticsearchHost) {
+    this.elasticsearchHost = elasticsearchHost;
+  }
+
+  public String getClusterName() {
+    return clusterName;
+  }
+
+  public void setClusterName(String clusterName) {
+    this.clusterName = clusterName;
+  }
+
 }

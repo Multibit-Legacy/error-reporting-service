@@ -11,15 +11,26 @@ import com.yammer.dropwizard.views.ViewMessageBodyWriter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.eclipse.jetty.server.session.SessionHandler;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.node.NodeBuilder;
 import org.multibit.hd.brit.crypto.PGPUtils;
-import org.multibit.hd.error_reporting.health.ErrorReportingHealthCheck;
+import org.multibit.hd.error_reporting.health.CryptoFilesHealthCheck;
+import org.multibit.hd.error_reporting.health.ESHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
 import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -75,34 +86,11 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     System.out.print("Crypto files ");
     // PGP decrypt the file (requires the private key ring that is password protected)
-    final File errorReportingDirectory = getErrorReportingDirectory();
-    final File secretKeyringFile = getSecretKeyringFile(errorReportingDirectory);
-    final File publicKeyFile = getPublicKeyFile(errorReportingDirectory);
-    final File testCryptoFile = getTestCryptoFile(errorReportingDirectory);
     System.out.println("OK");
 
     System.out.print("Crypto keys ");
     try {
-      // Attempt to encrypt the test file
-      ByteArrayOutputStream armoredOut = new ByteArrayOutputStream(1024);
-      PGPPublicKey publicKey = PGPUtils.readPublicKey(new FileInputStream(publicKeyFile));
-      PGPUtils.encryptFile(armoredOut, testCryptoFile, publicKey);
-
-      // Attempt to decrypt the test file
-      ByteArrayInputStream armoredIn = new ByteArrayInputStream(armoredOut.toByteArray());
-      ByteArrayOutputStream decryptedOut = new ByteArrayOutputStream(1024);
-      secring = ByteStreams.toByteArray(new FileInputStream(secretKeyringFile));
-      PGPUtils.decryptFile(armoredIn, decryptedOut, new ByteArrayInputStream(getSecring()), password);
-
-      // Verify that the decryption was successful
-      String testCrypto = decryptedOut.toString();
-      System.out.println(testCrypto);
-
-      if (!"OK".equals(testCrypto)) {
-        System.err.println("FAIL");
-        System.exit(-1);
-      }
-
+      verifyCryptoFiles();
     } catch (PGPException e) {
       System.err.println("FAIL (" + e.getMessage() + "). Checksum means password is incorrect.");
       System.exit(-1);
@@ -112,11 +100,42 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     System.out.println("Environment checks OK\nStarting service...\n");
 
     // Load the public key
-    servicePublicKey = Files.toString(publicKeyFile, Charsets.UTF_8);
+    servicePublicKey = Files.toString(getPublicKeyFile(getErrorReportingDirectory()), Charsets.UTF_8);
 
     // Must be OK to be here
     new ErrorReportingService().run(args);
 
+  }
+
+  /**
+   * Verify the local environment is set up correctly
+   *
+   * @throws Exception If something goes wrong
+   */
+  public static void verifyCryptoFiles() throws Exception {
+
+    final File errorReportingDirectory = getErrorReportingDirectory();
+    final File secretKeyringFile = getSecretKeyringFile(errorReportingDirectory);
+    final File testCryptoFile = getTestCryptoFile(errorReportingDirectory);
+
+    // Attempt to encrypt the test file
+    ByteArrayOutputStream armoredOut = new ByteArrayOutputStream(1024);
+    PGPPublicKey publicKey = PGPUtils.readPublicKey(new FileInputStream(getPublicKeyFile(errorReportingDirectory)));
+    PGPUtils.encryptFile(armoredOut, testCryptoFile, publicKey);
+
+    // Attempt to decrypt the test file
+    ByteArrayInputStream armoredIn = new ByteArrayInputStream(armoredOut.toByteArray());
+    ByteArrayOutputStream decryptedOut = new ByteArrayOutputStream(1024);
+    secring = ByteStreams.toByteArray(new FileInputStream(secretKeyringFile));
+    PGPUtils.decryptFile(armoredIn, decryptedOut, new ByteArrayInputStream(getSecring()), password);
+
+    // Verify that the decryption was successful
+    String testCrypto = decryptedOut.toString();
+    System.out.println(testCrypto);
+
+    if (!"OK".equals(testCrypto)) {
+      throw new PGPException("Incorrect message in test crypto file");
+    }
   }
 
   /**
@@ -249,13 +268,21 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   @Override
   public void run(ErrorReportingConfiguration errorReportingConfiguration, Environment environment) throws Exception {
 
+    log.info("Configuring Elasticsearch client");
+    Node node = NodeBuilder
+      .nodeBuilder()
+      .local(true)
+      .node();
+    Client client = node.client();
+
     log.info("Scanning environment...");
 
     // Configure environment
     environment.addResource(PublicErrorReportingResource.class);
 
     // Health checks
-    environment.addHealthCheck(new ErrorReportingHealthCheck());
+    environment.addHealthCheck(new CryptoFilesHealthCheck());
+    environment.addHealthCheck(new ESHealthCheck("", client));
 
     // Providers
     environment.addProvider(new ViewMessageBodyWriter());
