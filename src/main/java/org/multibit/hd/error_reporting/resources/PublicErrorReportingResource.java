@@ -1,11 +1,15 @@
 package org.multibit.hd.error_reporting.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.Timed;
 import org.multibit.hd.brit.crypto.PGPUtils;
+import org.multibit.hd.common.error_reporting.ErrorReport;
+import org.multibit.hd.common.error_reporting.ErrorReportResult;
+import org.multibit.hd.common.error_reporting.ErrorReportStatus;
 import org.multibit.hd.error_reporting.ErrorReportingService;
 import org.multibit.hd.error_reporting.caches.ErrorReportingResponseCache;
 import org.slf4j.Logger;
@@ -16,7 +20,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.URI;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,6 +40,8 @@ public class PublicErrorReportingResource extends BaseResource {
 
   private static final Logger log = LoggerFactory.getLogger(PublicErrorReportingResource.class);
 
+  private static final ObjectMapper mapper = new ObjectMapper();
+
   /**
    * The maximum length of the payload (typical value is 680 bytes)
    */
@@ -40,7 +49,8 @@ public class PublicErrorReportingResource extends BaseResource {
 
   private final char[] password;
   private final byte[] secring;
-  private final String servicePublicKey;
+
+  private final String SERVICE_PUBLIC_KEY;
 
   /**
    * Default constructor used by Jersey and reads from the ErrorReportingService
@@ -60,7 +70,7 @@ public class PublicErrorReportingResource extends BaseResource {
 
     this.secring = Arrays.copyOf(secring, secring.length);
     this.password = Arrays.copyOf(password, password.length);
-    this.servicePublicKey = servicePublicKey;
+    this.SERVICE_PUBLIC_KEY = servicePublicKey;
 
   }
 
@@ -76,7 +86,7 @@ public class PublicErrorReportingResource extends BaseResource {
   @Timed
   @CacheControl(maxAge = 1, maxAgeUnit = TimeUnit.DAYS)
   public Response getPublicKey() {
-    return Response.ok(servicePublicKey).build();
+    return Response.ok(SERVICE_PUBLIC_KEY).build();
   }
 
   /**
@@ -88,7 +98,7 @@ public class PublicErrorReportingResource extends BaseResource {
    */
   @POST
   @Consumes("text/plain")
-  @Produces("text/plain")
+  @Produces("application/json")
   @Timed
   @CacheControl(noCache = true)
   public Response submitEncryptedErrorReport(String payload) {
@@ -96,7 +106,7 @@ public class PublicErrorReportingResource extends BaseResource {
     Preconditions.checkNotNull(payload, "'payload' must be present");
     Preconditions.checkState(payload.length() < MAX_PAYLOAD_LENGTH, "'payload' is too long");
 
-    String result = processEncryptedErrorReport(payload.getBytes(Charsets.UTF_8));
+    ErrorReportResult result = processEncryptedErrorReport(payload.getBytes(Charsets.UTF_8));
 
     return Response
       .created(UriBuilder.fromPath("/error-reporting").build())
@@ -105,10 +115,10 @@ public class PublicErrorReportingResource extends BaseResource {
 
   }
 
-  private String processEncryptedErrorReport(byte[] payload) {
+  private ErrorReportResult processEncryptedErrorReport(byte[] payload) {
 
     byte[] sha1 = ErrorReportingService.digest(payload);
-    Optional<String> cachedResponse = ErrorReportingResponseCache.INSTANCE.getByErrorReportDigest(sha1);
+    Optional<ErrorReportResult> cachedResponse = ErrorReportingResponseCache.INSTANCE.getByErrorReportDigest(sha1);
 
     if (cachedResponse.isPresent()) {
       log.debug("Using cached response");
@@ -128,8 +138,9 @@ public class PublicErrorReportingResource extends BaseResource {
     }
 
     // Push to ELK and cache the result
-    String result = pushToElk(plainBaos);
+    ErrorReportResult result = pushToElk(plainBaos);
     ErrorReportingResponseCache.INSTANCE.put(sha1, result);
+
     return result;
 
   }
@@ -139,11 +150,27 @@ public class PublicErrorReportingResource extends BaseResource {
    *
    * @return The result of the push (e.g. "OK_UNKNOWN")
    */
-  private String pushToElk(ByteArrayOutputStream payload) {
+  private ErrorReportResult pushToElk(ByteArrayOutputStream payload) {
 
-    System.out.printf("Payload as String:%n%s%n", new String(payload.toByteArray(), Charsets.UTF_8));
+    //final ErrorReport errorReport;
+    try {
+      mapper.readValue(payload.toByteArray(), ErrorReport.class);
+    } catch (IOException e) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
 
-    return "OK_UNKNOWN";
+    // Create a short UUID for this log
+    String id = UUID.randomUUID().toString().substring(0,7);
+
+    // TODO Push to Elasticsearch
+
+    // Must be OK to be here
+    ErrorReportResult result = new ErrorReportResult(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
+    result.setId(id);
+    result.setUri(URI.create("https://multibit.org"));
+
+    return result;
   }
 
 }

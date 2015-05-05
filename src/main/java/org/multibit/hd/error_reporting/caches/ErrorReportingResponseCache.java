@@ -4,7 +4,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.multibit.hd.brit.dto.EncryptedMatcherResponse;
+import org.multibit.hd.common.error_reporting.ErrorReportResult;
 
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +23,7 @@ public enum ErrorReportingResponseCache {
   INSTANCE;
 
   // A lot of threads will hit this cache
-  private volatile Cache<byte[], String> pageCache;
+  private volatile Cache<byte[], ErrorReportResult> pageCache;
 
   ErrorReportingResponseCache() {
     reset();
@@ -52,14 +52,14 @@ public enum ErrorReportingResponseCache {
 
   /**
    * @param payerRequestDigest The encrypted Payer request digest (usually SHA1)
-   * @param response           The plain text response
+   * @param result             The result
    */
-  public void put(byte[] payerRequestDigest, String response) {
+  public void put(byte[] payerRequestDigest, ErrorReportResult result) {
 
-    Preconditions.checkNotNull(response, "'encryptedMatcherResponse' must be present");
+    Preconditions.checkNotNull(result, "'encryptedMatcherResponse' must be present");
     Preconditions.checkNotNull(payerRequestDigest, "'payerRequestDigest' must be present");
 
-    pageCache.put(payerRequestDigest, response);
+    pageCache.put(payerRequestDigest, result);
   }
 
   /**
@@ -67,10 +67,10 @@ public enum ErrorReportingResponseCache {
    *
    * @return The response if present
    */
-  public Optional<String> getByErrorReportDigest(byte[] payerRequestDigest) {
+  public Optional<ErrorReportResult> getByErrorReportDigest(byte[] payerRequestDigest) {
 
     // Check the cache
-    Optional<String> responseOptional = Optional.fromNullable(pageCache.getIfPresent(payerRequestDigest));
+    Optional<ErrorReportResult> responseOptional = Optional.fromNullable(pageCache.getIfPresent(payerRequestDigest));
 
     if (responseOptional.isPresent()) {
       // Ensure we refresh the cache on a check to maintain the session timeout

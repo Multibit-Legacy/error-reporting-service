@@ -3,6 +3,8 @@ package org.multibit.hd.error_reporting.resources;
 import com.google.common.io.ByteStreams;
 import com.yammer.dropwizard.testing.ResourceTest;
 import org.junit.Test;
+import org.multibit.hd.common.error_reporting.ErrorReportResult;
+import org.multibit.hd.common.error_reporting.ErrorReportStatus;
 import org.multibit.hd.error_reporting.testing.FixtureAsserts;
 import org.multibit.hd.error_reporting.utils.StreamUtils;
 
@@ -67,17 +69,18 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
   @Test
   public void POST_EncryptedPayerRequest_String() throws Exception {
 
-    String payload = StreamUtils.toString(PublicErrorReportingResourceTest.class.getResourceAsStream("/fixtures/error_reporting/test-error-report.txt.asc"));
+    String payload = StreamUtils.toString(PublicErrorReportingResourceTest.class.getResourceAsStream("/fixtures/error_reporting/error-report.json.asc"));
 
     // Send the encrypted request to the service
-    String actualResponse = client()
+    ErrorReportResult actualResponse = client()
       .resource("/error-reporting")
       .header("Content-Type", "text/plain")
-      .accept(MediaType.TEXT_PLAIN_TYPE)
+      .accept(MediaType.APPLICATION_JSON_TYPE)
       .entity(payload)
-      .post(String.class);
+      .post(ErrorReportResult.class);
 
-    assertThat(actualResponse).isEqualTo("OK_UNKNOWN");
+    assertThat(actualResponse.getErrorReportStatus()).isEqualTo(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
+    assertThat(actualResponse.getId()).isNotNull();
 
   }
 
