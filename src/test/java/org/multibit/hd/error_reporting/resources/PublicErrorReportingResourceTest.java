@@ -15,19 +15,6 @@ import static org.fest.assertions.api.Assertions.assertThat;
 
 public class PublicErrorReportingResourceTest extends ResourceTest {
 
-  public static final String TEST_MATCHER_PUBLIC_KEYRING_FILE = "/src/test/resources/fixtures/gpg/pubring.gpg";
-
-  public static final String TEST_MATCHER_SECRET_KEYRING_FILE = "/src/test/resources/fixtures/gpg/secring.gpg";
-
-  public static final String TEST_PUBLIC_KEY_FILE = "/src/test/resources/fixtures/gpg/public-key.asc";
-
-  /**
-   * The password used in the generation of the test PGP keys
-   */
-  public static final char[] TEST_DATA_PASSWORD = "password".toCharArray();
-
-  private PublicErrorReportingResource testObject;
-
   @Override
   protected void setUpResources() throws Exception {
 
@@ -37,10 +24,11 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
     String publicKey = StreamUtils.toString(publicKeyStream);
     byte[] secring = ByteStreams.toByteArray(secringStream);
 
-    testObject = new PublicErrorReportingResource(
+    PublicErrorReportingResource testObject = new PublicErrorReportingResource(
       secring,
       "password".toCharArray(),
-      publicKey
+      publicKey,
+      null
     );
 
     // Configure resources

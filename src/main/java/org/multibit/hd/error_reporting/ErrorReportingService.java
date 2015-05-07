@@ -1,6 +1,7 @@
 package org.multibit.hd.error_reporting;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.yammer.dropwizard.Service;
@@ -12,9 +13,9 @@ import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
+import org.elasticsearch.client.transport.TransportClient;
 import org.multibit.hd.brit.crypto.PGPUtils;
+import org.multibit.hd.error_reporting.elastic_search.TransportClientFactory;
 import org.multibit.hd.error_reporting.health.CryptoFilesHealthCheck;
 import org.multibit.hd.error_reporting.health.ESHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
@@ -23,17 +24,11 @@ import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Console;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * <p>Service to provide the following to application:</p>
@@ -70,6 +65,11 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   private static char[] password;
 
   /**
+   * The Elasticsearch client
+   */
+  private static TransportClient elasticClient;
+
+  /**
    * Main entry point to the application
    *
    * @param args CLI arguments
@@ -90,14 +90,24 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     System.out.print("Crypto keys ");
     try {
-      verifyCryptoFiles();
+      verifyCryptoFiles(); // Outputs OK on success
     } catch (PGPException e) {
       System.err.println("FAIL (" + e.getMessage() + "). Checksum means password is incorrect.");
       System.exit(-1);
     }
+    System.out.print("Elasticsearch ");
+    try {
+      verifyElasticsearch();
+      if (elasticClient == null) {
+        throw new IllegalStateException("Elasticsearch client is not present");
+      }
+    } catch (IOException e) {
+      System.err.println("FAIL (" + e.getMessage() + ").");
+      System.exit(-1);
+    }
 
     // Create the service
-    System.out.println("Environment checks OK\nStarting service...\n");
+    System.out.println("OK\nStarting service...\n");
 
     // Load the public key
     servicePublicKey = Files.toString(getPublicKeyFile(getErrorReportingDirectory()), Charsets.UTF_8);
@@ -108,7 +118,25 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   }
 
   /**
-   * Verify the local environment is set up correctly
+   * Verify the Elasticsearch environment is set up correctly
+   */
+  private static void verifyElasticsearch() throws IOException {
+
+    // TODO Consider adding configuration to YAML
+    Map<String,String> settings = Maps.newHashMap();
+    settings.put("cluster.name", "elasticsearch_brew");
+
+    elasticClient = TransportClientFactory.newClient(
+      settings,
+      "localhost",
+      9300,
+      false
+    );
+
+  }
+
+  /**
+   * Verify the crypto environment is set up correctly
    *
    * @throws Exception If something goes wrong
    */
@@ -176,6 +204,13 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
    */
   public static char[] getPassword() {
     return Arrays.copyOf(password, password.length);
+  }
+
+  /**
+   * @return The Elasticsearch client
+   */
+  public static Client getElasticClient() {
+    return elasticClient;
   }
 
   /**
@@ -268,13 +303,6 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   @Override
   public void run(ErrorReportingConfiguration errorReportingConfiguration, Environment environment) throws Exception {
 
-    log.info("Configuring Elasticsearch client");
-    Node node = NodeBuilder
-      .nodeBuilder()
-      .local(true)
-      .node();
-    Client client = node.client();
-
     log.info("Scanning environment...");
 
     // Configure environment
@@ -282,7 +310,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Health checks
     environment.addHealthCheck(new CryptoFilesHealthCheck());
-    environment.addHealthCheck(new ESHealthCheck("", client));
+    environment.addHealthCheck(new ESHealthCheck("Elasticsearch", getElasticClient()));
 
     // Providers
     environment.addProvider(new ViewMessageBodyWriter());

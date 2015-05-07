@@ -6,6 +6,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.Timed;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.client.Client;
 import org.multibit.hd.brit.crypto.PGPUtils;
 import org.multibit.hd.common.error_reporting.ErrorReport;
 import org.multibit.hd.common.error_reporting.ErrorReportResult;
@@ -42,6 +44,8 @@ public class PublicErrorReportingResource extends BaseResource {
 
   private static final ObjectMapper mapper = new ObjectMapper();
 
+  private final Client elasticClient;
+
   /**
    * The maximum length of the payload (typical value is 680 bytes)
    */
@@ -59,18 +63,20 @@ public class PublicErrorReportingResource extends BaseResource {
     this(
       ErrorReportingService.getSecring(),
       ErrorReportingService.getPassword(),
-      ErrorReportingService.getServicePublicKey()
+      ErrorReportingService.getServicePublicKey(),
+      ErrorReportingService.getElasticClient()
     );
   }
 
   /**
    * Full constructor used by resource tests
    */
-  public PublicErrorReportingResource(byte[] secring, char[] password, String servicePublicKey) {
+  public PublicErrorReportingResource(byte[] secring, char[] password, String servicePublicKey, Client elasticClient) {
 
     this.secring = Arrays.copyOf(secring, secring.length);
     this.password = Arrays.copyOf(password, password.length);
     this.SERVICE_PUBLIC_KEY = servicePublicKey;
+    this.elasticClient = elasticClient;
 
   }
 
@@ -138,7 +144,7 @@ public class PublicErrorReportingResource extends BaseResource {
     }
 
     // Push to ELK and cache the result
-    ErrorReportResult result = pushToElk(plainBaos);
+    ErrorReportResult result = pushToElk(plainBaos.toByteArray());
     ErrorReportingResponseCache.INSTANCE.put(sha1, result);
 
     return result;
@@ -146,15 +152,17 @@ public class PublicErrorReportingResource extends BaseResource {
   }
 
   /**
+   * Reduced visibility for testing
+   *
    * @param payload The plaintext payload
    *
    * @return The result of the push (e.g. "OK_UNKNOWN")
    */
-  private ErrorReportResult pushToElk(ByteArrayOutputStream payload) {
+  protected ErrorReportResult pushToElk(byte[] payload) {
 
-    //final ErrorReport errorReport;
+    // Verify the payload is an ErrorReport in JSON
     try {
-      mapper.readValue(payload.toByteArray(), ErrorReport.class);
+      mapper.readValue(payload, ErrorReport.class);
     } catch (IOException e) {
       // User has uploaded something random
       return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
@@ -163,7 +171,19 @@ public class PublicErrorReportingResource extends BaseResource {
     // Create a short UUID for this log
     String id = UUID.randomUUID().toString().substring(0,7);
 
-    // TODO Push to Elasticsearch
+    // Push the payload to Elasticsearch
+    if (elasticClient != null) {
+      IndexResponse response = elasticClient
+        .prepareIndex("error-reports", "error-report", id)
+        .setSource(payload)
+        .execute()
+        .actionGet();
+
+      if (response == null) {
+        // Elasticsearch failed
+        return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+      }
+    }
 
     // Must be OK to be here
     ErrorReportResult result = new ErrorReportResult(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
