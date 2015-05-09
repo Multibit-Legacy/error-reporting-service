@@ -4,10 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
-import com.yammer.metrics.annotation.Timed;
+import com.yammer.metrics.annotation.ExceptionMetered;
+import com.yammer.metrics.annotation.Metered;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.multibit.hd.brit.crypto.PGPUtils;
@@ -49,7 +49,7 @@ public class PublicErrorReportingResource extends BaseResource {
   private final Client elasticClient;
 
   /**
-   * The maximum length of the payload (typical value is 680 bytes)
+   * The maximum length of the payload (typical value before encryption is 200Kb so compressed should be much smaller)
    */
   private final static int MAX_PAYLOAD_LENGTH = 2_000_000;
 
@@ -91,7 +91,8 @@ public class PublicErrorReportingResource extends BaseResource {
   @Path("/public-key")
   @Consumes("text/plain")
   @Produces("text/plain")
-  @Timed
+  @Metered
+  @ExceptionMetered
   @CacheControl(maxAge = 1, maxAgeUnit = TimeUnit.DAYS)
   public Response getPublicKey() {
     return Response.ok(SERVICE_PUBLIC_KEY).build();
@@ -107,12 +108,17 @@ public class PublicErrorReportingResource extends BaseResource {
   @POST
   @Consumes("text/plain")
   @Produces("application/json")
-  @Timed
+  @Metered
+  @ExceptionMetered
   @CacheControl(noCache = true)
   public Response submitEncryptedErrorReport(String payload) {
 
-    Preconditions.checkNotNull(payload, "'payload' must be present");
-    Preconditions.checkState(payload.length() < MAX_PAYLOAD_LENGTH, "'payload' is too long");
+    if (Strings.isNullOrEmpty(payload)) {
+      throw new WebApplicationException(Response.Status.BAD_REQUEST);
+    }
+    if (payload.length() > MAX_PAYLOAD_LENGTH) {
+      throw new WebApplicationException(Response.Status.BAD_REQUEST);
+    }
 
     ErrorReportResult result = processEncryptedErrorReport(payload.getBytes(Charsets.UTF_8));
 
