@@ -95,19 +95,8 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
       System.err.println("FAIL (" + e.getMessage() + "). Checksum means password is incorrect.");
       System.exit(-1);
     }
-    System.out.print("Elasticsearch ");
-    try {
-      verifyElasticsearch();
-      if (elasticClient == null) {
-        throw new IllegalStateException("Elasticsearch client is not present");
-      }
-    } catch (IOException e) {
-      System.err.println("FAIL (" + e.getMessage() + ").");
-      System.exit(-1);
-    }
-
-    // Create the service
-    System.out.println("OK\nStarting service...\n");
+    // Create the service (Elasticsearch requires Configuration)
+    System.out.print("Configuration ");
 
     // Load the public key
     servicePublicKey = Files.toString(getPublicKeyFile(getErrorReportingDirectory()), Charsets.UTF_8);
@@ -119,17 +108,18 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
   /**
    * Verify the Elasticsearch environment is set up correctly
+   *
+   * @param configuration The configuration containing the Elasticsearch connection details
    */
-  private static void verifyElasticsearch() throws IOException {
+  private static void verifyElasticsearch(ErrorReportingConfiguration configuration) throws IOException {
 
-    // TODO Consider adding configuration to YAML
-    Map<String,String> settings = Maps.newHashMap();
-    settings.put("cluster.name", "elasticsearch_brew");
+    Map<String, String> settings = Maps.newHashMap();
+    settings.put("cluster.name", configuration.getClusterName());
 
     elasticClient = TransportClientFactory.newClient(
       settings,
-      "localhost",
-      9300,
+      configuration.getElasticsearchHost(),
+      Integer.valueOf(configuration.getElasticsearchPort()),
       false
     );
 
@@ -301,9 +291,20 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   }
 
   @Override
-  public void run(ErrorReportingConfiguration errorReportingConfiguration, Environment environment) throws Exception {
+  public void run(ErrorReportingConfiguration configuration, Environment environment) throws Exception {
 
-    log.info("Scanning environment...");
+    System.out.print("OK\nElasticsearch ");
+    try {
+      verifyElasticsearch(configuration);
+      if (elasticClient == null) {
+        throw new IllegalStateException("Elasticsearch client is not present. Coding error.");
+      }
+    } catch (IOException e) {
+      System.err.println("FAIL (" + e.getMessage() + ").");
+      System.exit(-1);
+    }
+    // Create the service
+    System.out.println("OK");
 
     // Configure environment
     environment.addResource(PublicErrorReportingResource.class);

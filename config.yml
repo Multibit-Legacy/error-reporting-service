@@ -2,8 +2,10 @@
 
 production: true
 
-elasticsearchHost: localhost:9300
-clusterName: jc-play
+# The default is suitable for development installs
+clusterName: elasticsearch_brew
+elasticsearchHost: localhost
+elasticsearchPort: 9300
 
 # ################################# Dropwizard specific settings ##################################
 

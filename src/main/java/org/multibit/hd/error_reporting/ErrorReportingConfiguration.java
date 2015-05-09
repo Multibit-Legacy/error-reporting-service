@@ -25,7 +25,11 @@ public class ErrorReportingConfiguration extends Configuration {
 
   @NotEmpty
   @JsonProperty
-  private String elasticsearchHost = "localhost:9300";
+  private String elasticsearchHost = "localhost";
+
+  @NotEmpty
+  @JsonProperty
+  private String elasticsearchPort = "9300";
 
   @NotEmpty
   @JsonProperty
@@ -41,6 +45,14 @@ public class ErrorReportingConfiguration extends Configuration {
 
   public void setElasticsearchHost(String elasticsearchHost) {
     this.elasticsearchHost = elasticsearchHost;
+  }
+
+  public String getElasticsearchPort() {
+    return elasticsearchPort;
+  }
+
+  public void setElasticsearchPort(String elasticsearchPort) {
+    this.elasticsearchPort = elasticsearchPort;
   }
 
   public String getClusterName() {
