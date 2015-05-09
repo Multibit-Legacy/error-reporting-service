@@ -1,9 +1,11 @@
 package org.multibit.hd.error_reporting.resources;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.Timed;
 import org.elasticsearch.action.index.IndexResponse;
@@ -161,23 +163,79 @@ public class PublicErrorReportingResource extends BaseResource {
   protected ErrorReportResult pushToElk(byte[] payload) {
 
     // Verify the payload is an ErrorReport in JSON
+    final ErrorReport errorReport;
     try {
-      mapper.readValue(payload, ErrorReport.class);
+      errorReport = mapper.readValue(payload, ErrorReport.class);
     } catch (IOException e) {
       // User has uploaded something random
       return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
     }
 
-    // Create a short UUID for this log
-    String id = UUID.randomUUID().toString().substring(0,7);
+    // Verify the report contains reasonable data
+    if (errorReport == null) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (Strings.isNullOrEmpty(errorReport.getOsName())) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (Strings.isNullOrEmpty(errorReport.getOsArch())) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (Strings.isNullOrEmpty(errorReport.getOsVersion())) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (Strings.isNullOrEmpty(errorReport.getAppVersion())) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (errorReport.getLogEntries() == null) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
+    if (errorReport.getLogEntries().isEmpty()) {
+      // User has uploaded something random
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
 
-    // Push the payload to Elasticsearch
+    // Create a short UUID for this log
+    String id = UUID.randomUUID().toString().substring(0, 7);
+
+    ErrorReport summary = new ErrorReport();
+    summary.setAppVersion(errorReport.getAppVersion());
+    summary.setOsArch(errorReport.getOsArch());
+    summary.setOsVersion(errorReport.getOsVersion());
+    summary.setOsName(errorReport.getOsName());
+    summary.setUserNotes(errorReport.getUserNotes());
+
+    // Push the payload to Elasticsearch in parts under its own index for easier analysis
     if (elasticClient != null) {
-      IndexResponse response = elasticClient
-        .prepareIndex("error-reports", "error-report", id)
-        .setSource(payload)
-        .execute()
-        .actionGet();
+      IndexResponse response;
+      try {
+        // Write the overall report summary without entries
+        response = elasticClient
+          .prepareIndex("error-reports-" + id, "error-report-summary", id)
+          .setSource(mapper.writeValueAsString(summary))
+          .execute()
+          .actionGet();
+
+        // Write each log entry under its own id within the index
+        for (int i = 0; i < errorReport.getLogEntries().size(); i++) {
+          response = elasticClient
+            .prepareIndex("error-reports-" + id, "log-entry", String.valueOf(i))
+            .setSource(mapper.writeValueAsString(errorReport.getLogEntries().get(i)))
+            .execute()
+            .actionGet();
+        }
+
+      } catch (JsonProcessingException e) {
+        // Unable to re-marshal
+        log.error("Unable to re-marshal the error report. This indicates a code problem.");
+        return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+      }
 
       if (response == null) {
         // Elasticsearch failed
@@ -189,6 +247,8 @@ public class PublicErrorReportingResource extends BaseResource {
     ErrorReportResult result = new ErrorReportResult(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
     result.setId(id);
     result.setUri(URI.create("https://multibit.org"));
+
+    log.info("Posted error-report under '{}'", id);
 
     return result;
   }
