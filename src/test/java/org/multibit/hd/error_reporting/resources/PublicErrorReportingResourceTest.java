@@ -68,7 +68,6 @@ public class PublicErrorReportingResourceTest extends ResourceTest {
       .post(ErrorReportResult.class);
 
     assertThat(actualResponse.getErrorReportStatus()).isEqualTo(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
-    assertThat(actualResponse.getId()).isNotNull();
 
   }
 

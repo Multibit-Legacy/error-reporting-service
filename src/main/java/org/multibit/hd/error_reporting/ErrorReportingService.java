@@ -229,7 +229,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   /**
    * @return The error reporting support directory
    */
-  private static File getErrorReportingDirectory() {
+  public static File getErrorReportingDirectory() {
 
     final File errorReportingDirectory = new File(ERROR_REPORTING_DIRECTORY);
     if (!errorReportingDirectory.exists()) {
@@ -300,7 +300,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
         throw new IllegalStateException("Elasticsearch client is not present. Coding error.");
       }
     } catch (IOException e) {
-      System.err.println("FAIL (" + e.getMessage() + ").");
+      System.err.println("FAIL: " + e.getMessage());
       System.exit(-1);
     }
     // Create the service

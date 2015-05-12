@@ -8,8 +8,10 @@ import com.google.common.base.Strings;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.ExceptionMetered;
 import com.yammer.metrics.annotation.Metered;
+import net.logstash.logback.encoder.org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.multibit.hd.brit.crypto.PGPUtils;
 import org.multibit.hd.common.error_reporting.ErrorReport;
 import org.multibit.hd.common.error_reporting.ErrorReportResult;
@@ -22,9 +24,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.UUID;
@@ -101,7 +101,7 @@ public class PublicErrorReportingResource extends BaseResource {
   /**
    * Allow a client to upload an error report as an ASCII armored payload (useful for REST clients)
    *
-   * @param payload The encrypted error report payload
+   * @param encryptedPayload The encrypted error report payload
    *
    * @return A plain text response
    */
@@ -111,16 +111,16 @@ public class PublicErrorReportingResource extends BaseResource {
   @Metered
   @ExceptionMetered
   @CacheControl(noCache = true)
-  public Response submitEncryptedErrorReport(String payload) {
+  public Response submitEncryptedErrorReport(String encryptedPayload) {
 
-    if (Strings.isNullOrEmpty(payload)) {
+    if (Strings.isNullOrEmpty(encryptedPayload)) {
       throw new WebApplicationException(Response.Status.BAD_REQUEST);
     }
-    if (payload.length() > MAX_PAYLOAD_LENGTH) {
+    if (encryptedPayload.length() > MAX_PAYLOAD_LENGTH) {
       throw new WebApplicationException(Response.Status.BAD_REQUEST);
     }
 
-    ErrorReportResult result = processEncryptedErrorReport(payload.getBytes(Charsets.UTF_8));
+    ErrorReportResult result = processEncryptedErrorReport(encryptedPayload.getBytes(Charsets.UTF_8));
 
     return Response
       .created(UriBuilder.fromPath("/error-reporting").build())
@@ -129,9 +129,9 @@ public class PublicErrorReportingResource extends BaseResource {
 
   }
 
-  private ErrorReportResult processEncryptedErrorReport(byte[] payload) {
+  private ErrorReportResult processEncryptedErrorReport(byte[] encryptedPayload) {
 
-    byte[] sha1 = ErrorReportingService.digest(payload);
+    byte[] sha1 = ErrorReportingService.digest(encryptedPayload);
     Optional<ErrorReportResult> cachedResponse = ErrorReportingResponseCache.INSTANCE.getByErrorReportDigest(sha1);
 
     if (cachedResponse.isPresent()) {
@@ -139,23 +139,61 @@ public class PublicErrorReportingResource extends BaseResource {
       return cachedResponse.get();
     }
 
-    // Must be new or uncached to be here
-    log.debug("Creating response");
-
-    // Decrypt the payload
-    ByteArrayInputStream encryptedBais = new ByteArrayInputStream(payload);
     ByteArrayOutputStream plainBaos = new ByteArrayOutputStream();
     try {
+      // Decrypt the payload (PGP utils require an input stream)
+      ByteArrayInputStream encryptedBais = new ByteArrayInputStream(encryptedPayload);
       PGPUtils.decryptFile(encryptedBais, plainBaos, new ByteArrayInputStream(secring), password);
     } catch (Exception e) {
       throw new WebApplicationException(Response.Status.BAD_REQUEST);
     }
 
-    // Push to ELK and cache the result
-    ErrorReportResult result = pushToElk(plainBaos.toByteArray());
-    ErrorReportingResponseCache.INSTANCE.put(sha1, result);
+    try {
+      // Push to ELK and cache the result
+      ErrorReportResult result = pushToElk(plainBaos.toByteArray());
+      ErrorReportingResponseCache.INSTANCE.put(sha1, result);
 
-    return result;
+      return result;
+    } catch (NoNodeAvailableException e) {
+      // ELK has gone down - persist the encrypted payload to the file system
+      return pushToFileSystem(encryptedPayload);
+    }
+  }
+
+  /**
+   * Persist the encrypted error report to the file system until ELK is running
+   *
+   * @param encryptedPayload The original encrypted payload
+   */
+  private ErrorReportResult pushToFileSystem(byte[] encryptedPayload) {
+
+    // Must be new or uncached to be here
+    log.debug("No ELK. Persisting to file system.");
+
+    try {
+      File errorReportsDirectory = new File(ErrorReportingService.getErrorReportingDirectory().getAbsolutePath() + "/error-reports");
+      if (!errorReportsDirectory.exists()) {
+        if (!errorReportsDirectory.mkdirs()) {
+          log.error("Failed to create backup directory");
+          return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+        }
+      }
+
+      // Create a suitable unique error report file
+      final String errorReportPath = "error-report-" + UUID.randomUUID().toString()+".json.asc";
+      File errorReportFile = new File(errorReportsDirectory, errorReportPath);
+
+      // Write the encrypted payload
+      final FileOutputStream fos = new FileOutputStream(errorReportFile);
+      IOUtils.write(encryptedPayload, fos);
+
+      // Error report delivered
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
+
+    } catch (IOException e) {
+      log.error("Failed to persist error report.", e);
+      return new ErrorReportResult(ErrorReportStatus.UPLOAD_FAILED);
+    }
 
   }
 
