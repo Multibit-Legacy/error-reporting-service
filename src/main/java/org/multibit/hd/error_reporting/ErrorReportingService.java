@@ -21,6 +21,7 @@ import org.multibit.hd.error_reporting.health.ESHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
 import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
+import org.multibit.hd.error_reporting.tasks.IngestionTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -322,6 +323,9 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Session handler
     environment.setSessionHandler(new SessionHandler());
+
+    // Tasks
+    environment.addTask(new IngestionTask());
 
   }
 }
