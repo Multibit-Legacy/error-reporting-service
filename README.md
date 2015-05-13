@@ -129,6 +129,86 @@ providing data visualisation.
 Everyone's server environment is different so [here is a general guide based on Centos 7](https://www.digitalocean.com/community/tutorial_series/centralized-logging-with-logstash-and-kibana-on-centos-7).
 There are versions covering different server operating systems on that site as well.
 
+### Installing ELK on a Mac
+Here is a basic set of instructions to get an ELK stack in place on a Mac. It's only a quick intro to get started.
+
+1. Install Homebrew
+
+http://brew.sh/
+
+2. Install Elasticsearch
+
+$ brew update
+$ brew install elasticsearch && brew info elasticsearch
+$ elasticsearch
+
+3. Verify Elasticsearch is working by visiting
+
+http://localhost:9200
+
+and see a block of JSON
+
+{
+  "status" : 200,
+  "name" : "Cold War",
+  "cluster_name" : "elasticsearch_brew",
+  "version" : {
+    "number" : "1.5.1",
+    "build_hash" : "5e38401bc4e4388537a615569ac60925788e1cf4",
+    "build_timestamp" : "2015-04-09T13:41:35Z",
+    "build_snapshot" : false,
+    "lucene_version" : "4.10.4"
+  },
+  "tagline" : "You Know, for Search"
+}
+
+4. Install Logstash using a new Terminal tab
+
+$ brew install logstash
+
+5. Verify Logstash (make sure you have JSON logs in place)
+
+$ logstash -e 'input { file { path => "/Users/<username>/Library/Application\ Support/MultiBitHD/logs/multibit-hd.log" type => "nginx" codec => "json" } } output { elasticsearch { host => localhost protocol => "http" port => "9200" } }'
+
+Wait for "using Milestone 2 input plugin..." text to appear
+
+6. Open a new Terminal tab and install Kibana (use their binary install since it's quicker) from https://www.elastic.co/downloads/kibana (select MAC and unzip somewhere). 
+
+$ cd <kibana install>/bin
+$ ./kibana
+
+7. Verify Kibana by visiting:
+
+http://localhost:5601
+
+8. Configure Settings (first screen you'll see) to contain
+
+Check: Index contains time-based events
+Uncheck: Use event times...
+Index name or pattern: logstash-*
+Time-field name: @timestamp
+
+9. Click Discover tab
+
+See a bar graph attempting to count the number of log messages occurring at a particular time step.
+
+So what we now have is a tool that can monitor a log file, and present the data contained within in a variety of ways. 
+
+Our mission now is to come up with various useful queries to help us filter out the crap and identify useful messages that we need to know the frequency of, e.g. "ERROR" and "WARN" counts.
+
+10. Observe @timestamp is selected in "Popular fields" on the left and that the main detail area is showing "Time, _source" which is basically a big mess
+
+11. On the left hand panel, click "level" then Add
+
+12. In the Search field across the top, type including quotes "WARN" then press Enter
+
+13. Observe "Time, level" in the detail area and some colouring for the level
+
+14. On the left hand panel, click "message" then Add
+
+15. Observe the addition information in the detail area
+
+
 ### Where does the ASCII art come from?
 
 The ASCII art for the startup banner was created using the online tool available at
