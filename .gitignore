@@ -20,3 +20,7 @@ nb*.xml
 
 # Maven
 target/
+
+# Running error-report-service
+bcprov-jdk16-1.46.jar
+

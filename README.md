@@ -92,33 +92,36 @@ development environment as follows:
     Content-Type: text/plain
     Accept: text/plain
 
-    -----BEGIN PGP MESSAGE-----
-    Version: BCPG v1.46
-    
-    hQEMA+aIld5YYUzuAQf9H8h/Wrsnlh90KEDjOI3Z4FaCgO/FZm0niBTlI2jk+oYX
-    oSjx18Zc8eb8pKw4kGDJx8o1ezbQxBafzx4H0gHiva8R+sMqaciXXcyebTyIPG7s
-    gx1S2xAgDxD5JlHMudTzpI2ZhdpZfE9e0ElSfOB9ltMqKGenBcMjwxibXw1BSrcV
-    sW0LrG6EeHx5RCWA3qqLG8/aelReBLyA7pVHb3X2eJT3LmAOjGe/oUjqNLjMZxFk
-    4pZQvr32DDXEuTKA5Rn0BhZtSflQuD2L/v6O9sDr6m/x1xKeiJZ4jzfe4RS9Atpl
-    xq53zFyivmitJoJtkwNkEqyWEET+yZ169JDiuFXjOtLBMwGi+F6qbbPBcXqbdGZ7
-    e9huU3VAl6F57yJKr6UVq7mBk8KwSDWDjUm/tnt3nJnIPK79ewmfN/LU4Fj1xFrf
-    QZpQAYTU+ZR9QiaWCjPRXpcAdcxk4UpclccUX/3F4wD4eN0x+2O/Q2OBY1e8+cjF
-    ZxyWJAyTtkyOZ9Icuk+PfMfQS4VnQ7HLEfp40PLD9OhMzSwp8UdEPNGP1bfCpOus
-    iH1Nlq8L2qIliXVyOKQ9CfPITNiQdwBKwKwLDwQfofJ6pReaNlVrF8kqhKKNyKdx
-    Lep/CIM/XG2SG4HNCjwszyOziGI4lONE1yFjIZugvibckw6BVgGmrcFdHr31fJ63
-    u5tttus4QSQtFyk5ms6SI3MvApBKM3sR9hbQT+M3mJyHaBknNWFUD6I/O+LtmIkx
-    K0XFxkyguhKqbJfWio00IU00i2aMSUuKStAjlMryMQQ2BffxXo1tQahSaizdGs1L
-    def2Nrpx93OoR8ny498AC9uTmbZ1OmqF+unoCyfX+JiP/xpZeZLExonoyALwFSXV
-    QIugqv3e8ys2nU3HDaQsLTwtacObDwX4AbbWIvW0z/5uQC7iYnn7vsFwsC6xlnpA
-    JT3LwzksOeCULD/aC6rQKnNoYaOZOC+BPBC+3Rg/r2wKwgBONVJ/oC2LJ7a+kY36
-    Im43xJ8=
-    =m+b9
-    -----END PGP MESSAGE-----
+-----BEGIN PGP MESSAGE-----
+Version: BCPG v1.46
+
+hQEMA+aIld5YYUzuAQf+OdhL70BbwtniZw2RNN+VNgpak/yWWWDy7uxuI0zVvZ/Z
+xK7Oo8c7Reay2pauVeOKaFBaMT0OXjOD8QcvknKd6g7EWonLjD/dZTBme2M/rNHC
+JU1JU35aHBtE1vI6fsmKmbP7y/6qxCpU5iMmVHxDx5PRtmKPBGMJ+pWcj/lWVM4T
+ucTKomd0yJQWRT0itxEoHshB7B1tDqHOAtq5kbvNoPcUqZUC85qxpjxCW4G9UERZ
+4WWXcLluFHcdwG0Wl3aLHFWlZavQd/hM7XumpSTQAQP3YjDlI24OnQBE96SFN2SK
+6AX3bUwG7p8G2h4AwRv64jmvY6A4SSwjVRzN4UO6ndLB6AEG3d5I/qQykX5oacEa
+QIJLyvB8piaKiD7zusz6Jrmo5JyWcxs1lgmhWXMvLpTBl191ohFIzd35+jLPND08
+SHa0utmToHEieWfmFV8WaBasrqCtbV9MzS/HeyUjYVyR2ZAyIWL4CsH+IWJzaIAt
+d095nRKAY7OLpoZ1iV/s3YjxnT31lPWpAWoPx98LSKeoyl51URpI+gnvY8zepDlw
+ntMWpJy6MmVfdvOg+fYxYgXRSvNupK4wLXZvnyK6iPWaYh+1BIUaJT+5zpo25dLz
+LbKZby4lRWC7T8zOTdsSsYmZgPRJIUGmo999sgEDIJ2EgmHPIkSagjVFEsbGY3A6
+eDAQ/9cORjXZfcCZ2uOZeBbgCI4cMZNF8JxjUWxi3Uc/R1hcK3oyrKP36X8a0b0P
+Rn/2t0OR2LOYk2x5lFwXbUzShI1RKXXLZyI9S0FUNO6Rqzu9YWXGO2Kp+1PVHUpF
+NuCOAEtVoGcQVYZZfeLpMGzKE8nH/+J5T8n0ZUIq81dcaqwcC6X0EKIkyXcqAG5T
+h/z6kk6j2i+0BX8nwElmht0A5y7Hp1sTpP/cV3lVDbObay91/7ypMyFj+rvb/VYC
+Afan2KSHJKzdXaHz6Zq5bZXpjWcJDtZtaEP8mPQchhb3blQGMy9XNJhX2pEqR3mw
+eBodn6xVqwfbhrAqNwLBnt86dtwt0yKCt+DRsgmoPdI8RE2KImdJKiEFZLeKBnOl
+k3WFrBBpdkigjoimTu09eyJk4EfZjVIqbwzk0p0g4+DcH/L5v+scMgPufulDAhMK
+n+EwKLL1LPTLjGMlELC1mbb2JJLoqukndGqGxwBfxiMF09iDXcEvESwxMlp3kOG3
+Hy9XDaV6LP0XPjVZ/JDrjkHCbitcpu+vyn52nO9xinWsQZUbx+mt6X0W
+=zl8v
+-----END PGP MESSAGE-----
 
 If all goes well the response will be a `201_CREATED`. The service will have successfully decrypted the payload and then passed it
 upstream for processing by the ELK stack (see later).
 
-A `400_BAD_REQUEST` indicates that the Error Reporting Service is not able to decrypt the payload.
+A `400_BAD_REQUEST` indicates that the Error Reporting Service is not able to decrypt the payload. (Wrong password)
 
 ### How to set up the rest of the Error Reporting environment
 
