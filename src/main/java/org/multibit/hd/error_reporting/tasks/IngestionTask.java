@@ -2,7 +2,6 @@ package org.multibit.hd.error_reporting.tasks;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.yammer.dropwizard.tasks.Task;
-import net.logstash.logback.encoder.org.apache.commons.io.IOUtils;
 import org.multibit.hd.error_reporting.ErrorReportingService;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.slf4j.Logger;
@@ -52,7 +51,7 @@ public class IngestionTask extends Task {
         output.print("Processing '" + file.toString() + "' ");
 
         // Read file
-        String encryptedPayload = IOUtils.toString(file.toUri());
+        String encryptedPayload = new String(Files.readAllBytes(file));
 
         // Create a new resource (simulate an individual request)
         PublicErrorReportingResource resource = new PublicErrorReportingResource();

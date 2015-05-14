@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.io.Files;
 import com.yammer.dropwizard.jersey.caching.CacheControl;
 import com.yammer.metrics.annotation.ExceptionMetered;
 import com.yammer.metrics.annotation.Metered;
-import net.logstash.logback.encoder.org.apache.commons.io.IOUtils;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
@@ -24,7 +24,10 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.UUID;
@@ -184,8 +187,7 @@ public class PublicErrorReportingResource extends BaseResource {
       File errorReportFile = new File(errorReportsDirectory, errorReportPath);
 
       // Write the encrypted payload
-      final FileOutputStream fos = new FileOutputStream(errorReportFile);
-      IOUtils.write(encryptedPayload, fos);
+      Files.write(encryptedPayload, errorReportFile);
 
       // Error report delivered
       return new ErrorReportResult(ErrorReportStatus.UPLOAD_OK_UNKNOWN);
