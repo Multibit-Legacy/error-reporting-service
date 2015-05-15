@@ -67,9 +67,11 @@ Fortunately the Bouncy Castle team have done this so the `bcprov-jdk16-1.46.jar`
 
 This changes the  launch command line from a standard Dropwizard as follows:
 
-    cd <project root>
-    mvn clean install
-    java -cp "bcprov-jdk16-1.46.jar:target/error-reporting-service-<version>.jar" org.multibit.hd.error_reporting.ErrorReportingService server config.yml
+```
+cd <project root>
+mvn clean install
+java -cp "bcprov-jdk16-1.46.jar:target/error-reporting-service-<version>.jar" org.multibit.hd.error_reporting.ErrorReportingService server config.yml
+```    
 
 where `<project root>` is the root directory of the project as checked out through git and `<version>` is the version
 as found in `pom.xml` (e.g. "develop-SNAPSHOT" or "1.0.0") but you'll see a `.jar` in the `target` directory so it'll be obvious.
@@ -88,9 +90,10 @@ Error Reporting Service public key. Note it is port 9191 not the usual 8080.
 If you are running Chrome and have the excellent Advanced REST Client extension installed then you can build a POST request for the
 development environment as follows:
 
-    Host: http://localhost:9191/error-reporting
-    Content-Type: text/plain
-    Accept: text/plain
+```
+Host: http://localhost:9191/error-reporting
+Content-Type: text/plain
+Accept: text/plain
 
 -----BEGIN PGP MESSAGE-----
 Version: BCPG v1.46
@@ -117,6 +120,7 @@ n+EwKLL1LPTLjGMlELC1mbb2JJLoqukndGqGxwBfxiMF09iDXcEvESwxMlp3kOG3
 Hy9XDaV6LP0XPjVZ/JDrjkHCbitcpu+vyn52nO9xinWsQZUbx+mt6X0W
 =zl8v
 -----END PGP MESSAGE-----
+```
 
 If all goes well the response will be a `201_CREATED`. The service will have successfully decrypted the payload and then passed it
 upstream for processing by the ELK stack (see later).
@@ -135,22 +139,17 @@ There are versions covering different server operating systems on that site as w
 ### Installing ELK on a Mac
 Here is a basic set of instructions to get an ELK stack in place on a Mac. It's only a quick intro to get started.
 
-1. Install Homebrew
-
-http://brew.sh/
+1. Install [Homebrew](http://brew.sh/)
 
 2. Install Elasticsearch
-
+```shell
 $ brew update
 $ brew install elasticsearch && brew info elasticsearch
 $ elasticsearch
-
-3. Verify Elasticsearch is working by visiting
-
-http://localhost:9200
-
-and see a block of JSON
-
+```
+3. Verify Elasticsearch is working by visiting [http://localhost:9200](http://localhost:9200)
+You should see a block of JSON similar to this:
+```json
 {
   "status" : 200,
   "name" : "Cold War",
@@ -164,53 +163,36 @@ and see a block of JSON
   },
   "tagline" : "You Know, for Search"
 }
-
+```
 4. Install Logstash using a new Terminal tab
-
+```shell
 $ brew install logstash
-
+```
 5. Verify Logstash (make sure you have JSON logs in place)
-
+```
 $ logstash -e 'input { file { path => "/Users/<username>/Library/Application\ Support/MultiBitHD/logs/multibit-hd.log" type => "nginx" codec => "json" } } output { elasticsearch { host => localhost protocol => "http" port => "9200" } }'
-
+```
 Wait for "using Milestone 2 input plugin..." text to appear
 
-6. Open a new Terminal tab and install Kibana (use their binary install since it's quicker) from https://www.elastic.co/downloads/kibana (select MAC and unzip somewhere). 
-
+6. Open a new Terminal tab and install Kibana (use their binary install since it's quicker) from [https://www.elastic.co/downloads/kibana](https://www.elastic.co/downloads/kibana) (select MAC and unzip somewhere). 
+```shell
 $ cd <kibana install>/bin
 $ ./kibana
+```
+7. Verify Kibana by visiting [http://localhost:5601](http://localhost:5601)
 
-7. Verify Kibana by visiting:
+### How are error reports ingested?
 
-http://localhost:5601
+1. The encrypted error report yields a JSON structure containing a few descriptive fields (OS info, user notes etc) and a list of log entry objects.
+2. This is pushed to Elasticsearch as its own index (`error-report-abc123`) containing an `error-report-summary` and a collection of `log-entry` items.
+3. This structure allows for a combination of aggregate views over time and drilling down to an individual's situation in an anonymous manner.
+4. If Elasticsearch is not running the encrypted data is written to disk for later ingestion through an admin task
 
-8. Configure Settings (first screen you'll see) to contain
-
-Check: Index contains time-based events
-Uncheck: Use event times...
-Index name or pattern: logstash-*
-Time-field name: @timestamp
-
-9. Click Discover tab
-
-See a bar graph attempting to count the number of log messages occurring at a particular time step.
-
-So what we now have is a tool that can monitor a log file, and present the data contained within in a variety of ways. 
-
-Our mission now is to come up with various useful queries to help us filter out the crap and identify useful messages that we need to know the frequency of, e.g. "ERROR" and "WARN" counts.
-
-10. Observe @timestamp is selected in "Popular fields" on the left and that the main detail area is showing "Time, _source" which is basically a big mess
-
-11. On the left hand panel, click "level" then Add
-
-12. In the Search field across the top, type including quotes "WARN" then press Enter
-
-13. Observe "Time, level" in the detail area and some colouring for the level
-
-14. On the left hand panel, click "message" then Add
-
-15. Observe the addition information in the detail area
-
+To force ingestion of the "dead letter queue" do the following on the same machine as the error reporting service is running:
+```
+curl -X POST http://localhost:9192/tasks/ingest
+```
+Note the use of the admin port (this is set in `config.yml` and will be different on Live).
 
 ### Where does the ASCII art come from?
 
