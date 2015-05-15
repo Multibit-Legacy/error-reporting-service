@@ -194,6 +194,21 @@ curl -X POST http://localhost:9192/tasks/ingest
 ```
 Note the use of the admin port (this is set in `config.yml` and will be different on Live).
 
+### Connect over an SSH tunnel
+
+Some users may find it convenient to reach Elasticsearch using an SSH tunnel. If the Elasticsearch instance is running with its default REST port (9200) then a local Kibana instance can be connected to a remote Elasticsearch instance as follows:
+
+```
+ssh example@example.org -L 9200:localhost:9200 -N &
+curl 'localhost:9200/_cat/indices?v'
+cd <kibana root>/bin
+./kibana &
+```
+Connect your browser to [http://localhost:5601](http://localhost:5601) as normal.
+
+
+```
+
 ### Where does the ASCII art come from?
 
 The ASCII art for the startup banner was created using the online tool available at
