@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
+import org.multibit.hd.error_reporting.testing.BinaryFixtureHelpers;
 
 import java.io.IOException;
 
@@ -55,7 +56,7 @@ public class FixtureAsserts {
    */
   public static void assertStringMatchesJsonFixture(String reason, String representation, String fixtureClasspath) throws IOException {
 
-    assertThat(jsonFixture(fixtureClasspath)).isEqualTo(representation).describedAs(reason);
+    assertThat(representation).isEqualTo(jsonFixture(fixtureClasspath)).describedAs(reason);
   }
 
   /**
@@ -69,7 +70,7 @@ public class FixtureAsserts {
    */
   public static void assertStringMatchesStringFixture(String reason, String representation, String fixtureClasspath) throws IOException {
 
-    assertThat(fixture(fixtureClasspath)).isEqualTo(representation).describedAs(reason);
+    assertThat(representation).isEqualTo(fixture(fixtureClasspath)).describedAs(reason);
 
   }
 
@@ -84,7 +85,7 @@ public class FixtureAsserts {
    */
   public static void assertRepresentationMatchesBinaryFixture(String reason, byte[] representation, String fixtureClasspath) throws IOException {
 
-    assertThat(BinaryFixtureHelpers.fixture(fixtureClasspath)).isEqualTo(representation).describedAs(reason);
+    assertThat(representation).isEqualTo(BinaryFixtureHelpers.fixture(fixtureClasspath)).describedAs(reason);
 
   }
 
