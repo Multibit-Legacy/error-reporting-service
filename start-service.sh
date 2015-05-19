@@ -11,4 +11,4 @@ echo ..   LIVE: https://multibit.org/error-reporting/public-key
 echo ..
 echo TIP: You can find this process again by typing 'ps -A | grep error-reporting'
 echo TIP: If 'NoClassDefFoundError: ... BouncyCastleProvider' copy bcprov-jdk16-1.46.jar to project root
-java -cp "bcprov-jdk16-1.46.jar" -jar target/error-reporting-service-develop-SNAPSHOT.jar server config.yml
+java -cp "bcprov-jdk16-1.46.jar;target/error-reporting-service-develop-SNAPSHOT.jar" org.multibit.hd.error_reporting.ErrorReportingService server config.yml
