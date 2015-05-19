@@ -9,5 +9,5 @@ echo 5. Verify service is still running by checking
 echo ..   TEST: http://localhost:7070/error-reporting/public-key   or
 echo ..   LIVE: https://multibit.org/error-reporting/public-key
 echo ..
-echo TIP: You can find this process again by typing 'ps -A | grep brit'
+echo TIP: You can find this process again by typing 'ps -A | grep error-reporting'
 java -cp "bcprov-jdk16-1.46.jar:target/error-reporting-service-develop-SNAPSHOT.jar" org.multibit.hd.error_reporting.ErrorReportingService server config.yml
