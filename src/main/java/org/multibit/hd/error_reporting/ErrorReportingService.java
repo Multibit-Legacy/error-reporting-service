@@ -8,7 +8,6 @@ import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.config.LoggingFactory;
-import com.yammer.dropwizard.views.ViewMessageBodyWriter;
 import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.eclipse.jetty.server.session.SessionHandler;
@@ -18,6 +17,7 @@ import org.multibit.hd.brit.crypto.PGPUtils;
 import org.multibit.hd.error_reporting.elastic_search.TransportClientFactory;
 import org.multibit.hd.error_reporting.health.CryptoFilesHealthCheck;
 import org.multibit.hd.error_reporting.health.ESHealthCheck;
+import org.multibit.hd.error_reporting.health.PublicKeyHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
 import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
@@ -25,7 +25,14 @@ import org.multibit.hd.error_reporting.tasks.IngestionTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -312,10 +319,10 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Health checks
     environment.addHealthCheck(new CryptoFilesHealthCheck());
+    environment.addHealthCheck(new PublicKeyHealthCheck());
     environment.addHealthCheck(new ESHealthCheck("Elasticsearch", getElasticClient()));
 
     // Providers
-    environment.addProvider(new ViewMessageBodyWriter());
     environment.addProvider(new RuntimeExceptionMapper());
 
     // Filters

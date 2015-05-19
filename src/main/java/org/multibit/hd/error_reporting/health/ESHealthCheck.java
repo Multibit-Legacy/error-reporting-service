@@ -26,6 +26,10 @@ public class ESHealthCheck extends HealthCheck {
   @Override
   protected Result check() throws Exception {
 
+    if (client == null) {
+      return Result.unhealthy("Elasticsearch client not present");
+    }
+
     // Perform a check against the configured cluster
     ClusterHealthResponse clusterHealthResponse = client
       .admin()

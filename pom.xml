@@ -165,7 +165,7 @@
     <!-- HTML Freemarker views support -->
     <dependency>
       <groupId>com.yammer.dropwizard</groupId>
-      <artifactId>dropwizard-views</artifactId>
+      <artifactId>dropwizard-client</artifactId>
       <version>${dropwizard.version}</version>
     </dependency>
 
