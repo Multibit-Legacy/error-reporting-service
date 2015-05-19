@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
-import org.multibit.hd.error_reporting.testing.BinaryFixtureHelpers;
 
 import java.io.IOException;
 
