@@ -38,7 +38,7 @@ public class ErrorReportingConfiguration extends Configuration {
   @Valid
   @NotNull
   @JsonProperty
-  private boolean sendEmail = true;
+  private boolean sendEmail = false; // Default is false for testing
 
   public boolean isProduction() {
     return production;

@@ -81,7 +81,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   /**
    * The current configuration
    */
-  private static ErrorReportingConfiguration errorReportingConfiguration;
+  private static ErrorReportingConfiguration errorReportingConfiguration = new ErrorReportingConfiguration();
 
   /**
    * Main entry point to the application
