@@ -18,6 +18,7 @@ import org.multibit.hd.common.error_reporting.ErrorReportResult;
 import org.multibit.hd.common.error_reporting.ErrorReportStatus;
 import org.multibit.hd.error_reporting.ErrorReportingService;
 import org.multibit.hd.error_reporting.caches.ErrorReportingResponseCache;
+import org.multibit.hd.error_reporting.core.email.Emails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -295,6 +296,17 @@ public class PublicErrorReportingResource extends BaseResource {
     result.setUri(URI.create("https://multibit.org"));
 
     log.info("Posted error-report under '{}'", id);
+
+    // Allow external configuration to switch this off if traffic gets too high
+    if (ErrorReportingService.getErrorReportingConfiguration().isSendEmail()) {
+      // Send an email to alert support of an uploaded error report
+      // This occurs asynchronously
+      try {
+        Emails.sendSupportEmail("New error report uploaded");
+      } catch (IllegalStateException e) {
+        log.error("Failed to send email", e);
+      }
+    }
 
     return result;
   }

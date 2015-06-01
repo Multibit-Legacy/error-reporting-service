@@ -35,6 +35,11 @@ public class ErrorReportingConfiguration extends Configuration {
   @JsonProperty
   private String clusterName = "elasticsearch";
 
+  @Valid
+  @NotNull
+  @JsonProperty
+  private boolean sendEmail = true;
+
   public boolean isProduction() {
     return production;
   }
@@ -61,6 +66,14 @@ public class ErrorReportingConfiguration extends Configuration {
 
   public void setClusterName(String clusterName) {
     this.clusterName = clusterName;
+  }
+
+  public boolean isSendEmail() {
+    return sendEmail;
+  }
+
+  public void setSendEmail(boolean sendEmail) {
+    this.sendEmail = sendEmail;
   }
 
 }

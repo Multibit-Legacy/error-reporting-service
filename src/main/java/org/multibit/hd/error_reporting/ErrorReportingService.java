@@ -17,6 +17,7 @@ import org.multibit.hd.brit.crypto.PGPUtils;
 import org.multibit.hd.error_reporting.elastic_search.TransportClientFactory;
 import org.multibit.hd.error_reporting.health.CryptoFilesHealthCheck;
 import org.multibit.hd.error_reporting.health.ESHealthCheck;
+import org.multibit.hd.error_reporting.health.EmailHealthCheck;
 import org.multibit.hd.error_reporting.health.PublicKeyHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
@@ -76,6 +77,11 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
    * The Elasticsearch client
    */
   private static TransportClient elasticClient;
+
+  /**
+   * The current configuration
+   */
+  private static ErrorReportingConfiguration errorReportingConfiguration;
 
   /**
    * Main entry point to the application
@@ -235,6 +241,13 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   }
 
   /**
+   * @return The current configuration
+   */
+  public static ErrorReportingConfiguration getErrorReportingConfiguration() {
+    return errorReportingConfiguration;
+  }
+
+  /**
    * @return The error reporting support directory
    */
   public static File getErrorReportingDirectory() {
@@ -321,6 +334,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     environment.addHealthCheck(new CryptoFilesHealthCheck());
     environment.addHealthCheck(new PublicKeyHealthCheck());
     environment.addHealthCheck(new ESHealthCheck("Elasticsearch", getElasticClient()));
+    environment.addHealthCheck(new EmailHealthCheck());
 
     // Providers
     environment.addProvider(new RuntimeExceptionMapper());
@@ -333,6 +347,8 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Tasks
     environment.addTask(new IngestionTask());
+
+    errorReportingConfiguration = configuration;
 
   }
 }

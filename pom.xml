@@ -53,12 +53,12 @@
     <!-- Use https://rawgithub.com to provide a consistent result -->
     <repository>
       <id>mbhd-maven-release</id>
-      <url>https://rawgithub.com/bitcoin-solutions/mbhd-maven/master/releases</url>
+      <url>https://raw.github.com/bitcoin-solutions/mbhd-maven/master/releases</url>
       <releases/>
     </repository>
     <repository>
       <id>mbhd-maven-snapshot</id>
-      <url>https://rawgithub.com/bitcoin-solutions/mbhd-maven/master/snapshots</url>
+      <url>https://raw.github.com/bitcoin-solutions/mbhd-maven/master/snapshots</url>
       <!-- These artifacts change frequently during development iterations -->
       <snapshots>
         <updatePolicy>always</updatePolicy>
@@ -202,6 +202,13 @@
       <!--<artifactId>elasticsearch-shield</artifactId>-->
       <!--<version>1.0.0</version>-->
     <!--</dependency>-->
+
+    <!-- Email support -->
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4.1</version>
+    </dependency>
 
     <!-- Test libraries -->
 
