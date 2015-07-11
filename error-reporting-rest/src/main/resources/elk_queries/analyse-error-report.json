@@ -1,0 +1,22 @@
+{
+  "indices": {
+    "indices": [
+      "error-report-0549c88"
+    ],
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "match_all": {}
+          }
+        ],
+        "must_not": [],
+        "should": []
+      }
+    },
+    "from": 0,
+    "size": 1000,
+    "sort": [],
+    "facets": {}
+  }
+}

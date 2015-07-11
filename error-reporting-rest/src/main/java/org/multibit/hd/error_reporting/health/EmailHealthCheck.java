@@ -24,7 +24,7 @@ public class EmailHealthCheck extends HealthCheck {
     try {
       Emails.sendSupportEmail("Health check email (Error Reporting Service) - please delete");
     } catch (IllegalStateException e) {
-      return Result.unhealthy(e.getMessage());
+      return Result.unhealthy("Verify environment variables: SMTP_PASSWORD for this user\n"+e.getMessage());
     }
 
     return Result.healthy();

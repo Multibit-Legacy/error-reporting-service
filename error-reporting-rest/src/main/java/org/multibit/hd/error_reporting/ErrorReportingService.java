@@ -1,6 +1,7 @@
 package org.multibit.hd.error_reporting;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
@@ -8,12 +9,10 @@ import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.config.LoggingFactory;
-import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.PGPPublicKey;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
-import org.multibit.hd.brit.crypto.PGPUtils;
+import org.multibit.commons.crypto.PGPUtils;
 import org.multibit.hd.error_reporting.elastic_search.TransportClientFactory;
 import org.multibit.hd.error_reporting.health.CryptoFilesHealthCheck;
 import org.multibit.hd.error_reporting.health.ESHealthCheck;
@@ -25,15 +24,10 @@ import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
 import org.multibit.hd.error_reporting.tasks.IngestionTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongycastle.openpgp.PGPException;
+import org.spongycastle.openpgp.PGPPublicKey;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Console;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -95,6 +89,10 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
     // Start the logging factory
     LoggingFactory.bootstrap();
 
+    if (!verifyEmail()) {
+      System.exit(-1);
+    }
+
     // Securely read the password from the console
     password = readPassword();
 
@@ -117,6 +115,22 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Must be OK to be here
     new ErrorReportingService().run(args);
+
+  }
+
+  /**
+   * Verify the email environment is set up correctly
+   *
+   */
+  private static boolean verifyEmail() throws IOException {
+
+    if (Strings.isNullOrEmpty(System.getenv("SMTP_PASSWORD"))) {
+      System.err.println("The 'SMTP_PASSWORD' environment variable is not set for this user (restart shell or IDE?).");
+      return false;
+    }
+
+    // Must be OK to be here
+    return true;
 
   }
 
