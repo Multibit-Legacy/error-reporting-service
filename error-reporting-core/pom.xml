@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.multibit.hd</groupId>
     <artifactId>error-reporting-parent</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.2.0</version>
   </parent>
 
   <artifactId>error-reporting-core</artifactId>
