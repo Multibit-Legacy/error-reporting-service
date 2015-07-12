@@ -7,6 +7,9 @@ clusterName: elasticsearch_brew
 elasticsearchHost: localhost
 elasticsearchPort: 9300
 
+# Send email on receipt of a new error report (off by default)
+sendEmail: false
+
 # ################################# Dropwizard specific settings ##################################
 
 # Define the HTTP settings

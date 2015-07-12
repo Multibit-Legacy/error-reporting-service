@@ -12,12 +12,13 @@ import com.yammer.metrics.annotation.Metered;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
-import org.multibit.hd.brit.crypto.PGPUtils;
+import org.multibit.commons.crypto.PGPUtils;
 import org.multibit.hd.common.error_reporting.ErrorReport;
 import org.multibit.hd.common.error_reporting.ErrorReportResult;
 import org.multibit.hd.common.error_reporting.ErrorReportStatus;
 import org.multibit.hd.error_reporting.ErrorReportingService;
 import org.multibit.hd.error_reporting.caches.ErrorReportingResponseCache;
+import org.multibit.hd.error_reporting.core.email.Emails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -261,9 +262,9 @@ public class PublicErrorReportingResource extends BaseResource {
     if (elasticClient != null) {
       IndexResponse response;
       try {
-        // Write the overall report summary without entries
+        // Elasticsearch prefers a unique document type per index
         response = elasticClient
-          .prepareIndex("error-reports-" + id, "error-report-summary", id)
+          .prepareIndex("error-report-summary-" + id, "error-report-summary", id)
           .setSource(mapper.writeValueAsString(summary))
           .execute()
           .actionGet();
@@ -271,7 +272,7 @@ public class PublicErrorReportingResource extends BaseResource {
         // Write each log entry under its own id within the index
         for (int i = 0; i < errorReport.getLogEntries().size(); i++) {
           response = elasticClient
-            .prepareIndex("error-reports-" + id, "log-entry", String.valueOf(i))
+            .prepareIndex("error-report-entries-" + id, "log-entry", String.valueOf(i))
             .setSource(mapper.writeValueAsString(errorReport.getLogEntries().get(i)))
             .execute()
             .actionGet();
@@ -295,6 +296,17 @@ public class PublicErrorReportingResource extends BaseResource {
     result.setUri(URI.create("https://multibit.org"));
 
     log.info("Posted error-report under '{}'", id);
+
+    // Allow external configuration to switch this off if traffic gets too high
+    if (ErrorReportingService.getErrorReportingConfiguration().isSendEmail()) {
+      // Send an email to alert support of an uploaded error report
+      // This occurs asynchronously
+      try {
+        Emails.sendSupportEmail("New error report uploaded");
+      } catch (IllegalStateException e) {
+        log.error("Failed to send email", e);
+      }
+    }
 
     return result;
   }
