@@ -302,7 +302,7 @@ public class PublicErrorReportingResource extends BaseResource {
       // Send an email to alert support of an uploaded error report
       // This occurs asynchronously
       try {
-        Emails.sendSupportEmail("New error report uploaded");
+        Emails.sendSupportEmail("New error report uploaded. Id: "+ id);
       } catch (IllegalStateException e) {
         log.error("Failed to send email", e);
       }
