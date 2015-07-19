@@ -168,6 +168,13 @@
     <dependency>
       <groupId>org.multibit</groupId>
       <artifactId>commons</artifactId>
+      <exclusions>
+        <!-- Don't need Tor support -->
+        <exclusion>
+          <groupId>org.bitcoinj</groupId>
+          <artifactId>orchid</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- Logstash for JSON logging -->
