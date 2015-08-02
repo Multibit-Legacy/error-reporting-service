@@ -14,6 +14,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.NoNodeAvailableException;
 import org.multibit.commons.crypto.PGPUtils;
 import org.multibit.hd.common.error_reporting.ErrorReport;
+import org.multibit.hd.common.error_reporting.ErrorReportLogEntry;
 import org.multibit.hd.common.error_reporting.ErrorReportResult;
 import org.multibit.hd.common.error_reporting.ErrorReportStatus;
 import org.multibit.hd.error_reporting.ErrorReportingService;
@@ -31,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -251,12 +253,18 @@ public class PublicErrorReportingResource extends BaseResource {
     // Create a short UUID for this log
     String id = UUID.randomUUID().toString().substring(0, 7);
 
+    String appVersion = errorReport.getAppVersion();
+    String osArch = errorReport.getOsArch();
+    String osVersion = errorReport.getOsVersion();
+    String osName = errorReport.getOsName();
+    String userNotes = errorReport.getUserNotes();
+
     ErrorReport summary = new ErrorReport();
-    summary.setAppVersion(errorReport.getAppVersion());
-    summary.setOsArch(errorReport.getOsArch());
-    summary.setOsVersion(errorReport.getOsVersion());
-    summary.setOsName(errorReport.getOsName());
-    summary.setUserNotes(errorReport.getUserNotes());
+    summary.setAppVersion(appVersion);
+    summary.setOsArch(osArch);
+    summary.setOsVersion(osVersion);
+    summary.setOsName(osName);
+    summary.setUserNotes(userNotes);
 
     // Push the payload to Elasticsearch in parts under its own index for easier analysis
     if (elasticClient != null) {
@@ -302,7 +310,38 @@ public class PublicErrorReportingResource extends BaseResource {
       // Send an email to alert support of an uploaded error report
       // This occurs asynchronously
       try {
-        Emails.sendSupportEmail("New error report uploaded");
+        // Get the first stack trace and count how many are present
+        List<ErrorReportLogEntry> logEntries = errorReport.getLogEntries();
+
+        String firstStackTrace = "";
+        int numberOfStackTraces = 0;
+
+        if (logEntries != null) {
+          for (ErrorReportLogEntry logEntry : logEntries) {
+            if (logEntry.getStackTrace() != null && logEntry.getStackTrace().length() > 0) {
+              numberOfStackTraces++;
+              if ("".equals(firstStackTrace)) {
+                // Remember the first
+                firstStackTrace = logEntry.getStackTrace();
+              }
+            }
+          }
+        }
+        final String newLine = "\n";
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("New error report uploaded. Id: ").append(id).append(newLine).append(newLine);
+
+        builder.append("MultiBit HD version: ").append(appVersion).append(newLine);
+        builder.append("Operating system: ").append(osArch).append(" ").append(osVersion).append(" ").append(osName).append(newLine).append(newLine);
+
+        String userNotePresent = (userNotes == null || userNotes.length() == 0) ? "No user notes" : "User notes length: " + userNotes.length();
+        builder.append(userNotePresent).append(newLine).append(newLine);
+
+        builder.append("Number of stack traces: ").append(numberOfStackTraces).append(newLine);
+        builder.append("First stack trace:").append("\n").append(firstStackTrace).append(newLine);
+
+        Emails.sendSupportEmail(builder.toString());
       } catch (IllegalStateException e) {
         log.error("Failed to send email", e);
       }
