@@ -9,6 +9,7 @@ import com.yammer.dropwizard.Service;
 import com.yammer.dropwizard.config.Bootstrap;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.config.LoggingFactory;
+import com.yammer.dropwizard.views.ViewBundle;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.transport.TransportClient;
@@ -21,6 +22,7 @@ import org.multibit.hd.error_reporting.health.PublicKeyHealthCheck;
 import org.multibit.hd.error_reporting.resources.PublicErrorReportingResource;
 import org.multibit.hd.error_reporting.resources.RuntimeExceptionMapper;
 import org.multibit.hd.error_reporting.servlets.SafeLocaleFilter;
+import org.multibit.hd.error_reporting.tasks.ExportHtmlTask;
 import org.multibit.hd.error_reporting.tasks.IngestionTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -321,7 +323,9 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
   @Override
   public void initialize(Bootstrap<ErrorReportingConfiguration> bootstrap) {
 
-    // Do nothing
+    log.info("Initializing bundles...");
+
+    bootstrap.addBundle(new ViewBundle());
 
   }
 
@@ -361,6 +365,7 @@ public class ErrorReportingService extends Service<ErrorReportingConfiguration> 
 
     // Tasks
     environment.addTask(new IngestionTask());
+    environment.addTask(new ExportHtmlTask());
 
     errorReportingConfiguration = configuration;
 

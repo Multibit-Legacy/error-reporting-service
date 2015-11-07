@@ -185,12 +185,32 @@ $ ./kibana
 
 1. The encrypted error report yields a JSON structure containing a few descriptive fields (OS info, user notes etc) and a list of log entry objects.
 2. This is pushed to Elasticsearch as its own index (`error-report-abc123`) containing an `error-report-summary` and a collection of `log-entry` items.
-3. This structure allows for a combination of aggregate views over time and drilling down to an individual's situation in an anonymous manner.
+3. This structure allows for a combination of aggregate views over time and drilling down to an individual situation in an anonymous manner.
 4. If Elasticsearch is not running the encrypted data is written to disk for later ingestion through an admin task
 
 To force ingestion of the "dead letter queue" do the following on the same machine as the error reporting service is running:
 ```
 curl -X POST http://localhost:9192/tasks/ingest
+```
+Note the use of the admin port (this is set in `config.yml` and will be different on Live).
+
+### How are error reports converted to HTML for easy offline reading?
+
+Rather than rely on Kibana and other online tools, the Error Reporting Service can export reports as HTML into a ZIP archive contained in the response. 
+
+Do the following on the same machine as the error reporting service is running:
+```
+curl -X POST http://localhost:9192/tasks/export
+```
+Note the use of the admin port (this is set in `config.yml` and will be different on Live).
+
+### How are error reports purged?
+
+Rather than leave error reports in Elasticsearch it may be useful to purge them on a regular basis into  
+
+Do the following on the same machine as the error reporting service is running:
+```
+curl -X POST http://localhost:9192/tasks/purge
 ```
 Note the use of the admin port (this is set in `config.yml` and will be different on Live).
 
@@ -205,9 +225,6 @@ cd <kibana root>/bin
 ./kibana &
 ```
 Connect your browser to [http://localhost:5601](http://localhost:5601) as normal.
-
-
-```
 
 ### Where does the ASCII art come from?
 

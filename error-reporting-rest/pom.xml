@@ -111,6 +111,12 @@
       <artifactId>dropwizard-client</artifactId>
       <version>${dropwizard.version}</version>
     </dependency>
+    <!-- HTML Freemarker views support -->
+    <dependency>
+      <groupId>com.yammer.dropwizard</groupId>
+      <artifactId>dropwizard-views</artifactId>
+      <version>${dropwizard.version}</version>
+    </dependency>
 
     <!-- Elastic Search dependencies -->
     <!-- Cluster access -->

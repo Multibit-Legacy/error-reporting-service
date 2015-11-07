@@ -1,6 +1,5 @@
 package org.multibit.hd.error_reporting.elastic_search;
 
-import org.apache.log4j.Logger;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.ImmutableList;
@@ -22,8 +21,6 @@ import java.util.Map;
  *  
  */
 public class TransportClientFactory {
-
-  private static final Logger log = Logger.getLogger(TransportClientFactory.class);
 
   /**
    * Utilities have private constructors
@@ -54,6 +51,7 @@ public class TransportClientFactory {
 
     TransportClient client = new TransportClient(immutableSettings);
 
+    System.out.print(" ("+clientTransportHost+":"+clientTransportPort+") ");
     client.addTransportAddress(new InetSocketTransportAddress(clientTransportHost,clientTransportPort));
 
     verifyConnection(client);
@@ -65,7 +63,7 @@ public class TransportClientFactory {
 
     ImmutableList<DiscoveryNode> nodes = client.connectedNodes();
     if (nodes.isEmpty()) {
-      throw new IOException("No nodes available. Verify ES is running on port 9300.");
+      throw new IOException("No nodes available. Verify ES is running.");
     }
 
   }
