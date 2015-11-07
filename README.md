@@ -206,11 +206,12 @@ Note the use of the admin port (this is set in `config.yml` and will be differen
 
 ### How are error reports purged?
 
-Rather than leave error reports in Elasticsearch it may be useful to purge them on a regular basis into  
+Rather than leave error reports in Elasticsearch it may be useful to purge them on a regular basis. This should be done as part of an export so that
+data is not lost.
 
 Do the following on the same machine as the error reporting service is running:
 ```
-curl -X POST http://localhost:9192/tasks/purge
+curl -X POST http://localhost:9192/tasks/export?purge=true
 ```
 Note the use of the admin port (this is set in `config.yml` and will be different on Live).
 
