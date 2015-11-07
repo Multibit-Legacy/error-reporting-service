@@ -3,7 +3,7 @@
 production: true
 
 # The default is suitable for development installs
-clusterName: elasticsearch_brew
+clusterName: elasticsearch_live
 elasticsearchHost: localhost
 elasticsearchPort: 9300
 
